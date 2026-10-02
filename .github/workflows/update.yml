@@ -1,0 +1,37 @@
+name: Nieuwe modelruns ophalen
+
+on:
+  schedule:
+    # Elk uur op :23. Het script slaat alleen op als er echt een nieuwe run is.
+    - cron: '23 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Runs ophalen en samenvatten
+        run: node scripts/update.mjs
+      - name: Opslaan als er iets nieuws is
+        run: |
+          if [ -n "$(git status --porcelain data)" ]; then
+            git config user.name "winterwacht-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add data
+            git commit -m "Nieuwe modelrun $(date -u +'%Y-%m-%d %H:%MZ')"
+            git push
+          else
+            echo "Geen nieuwe runs."
+          fi
