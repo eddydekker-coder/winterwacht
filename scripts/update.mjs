@@ -7,6 +7,7 @@ import {
   ENSEMBLES, summarizeEnsemble, fingerprint, estimateRun, windowMean,
   SIGNAL_POINTS, computeSignals, findOpenings,
 } from '../lib/stats.js';
+import { LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint } from '../lib/longrange.js';
 
 const ROOT = new URL('../', import.meta.url);
 const KEEP_RUNS = 28; // ~7 dagen bij 4 runs per dag
@@ -168,9 +169,74 @@ async function main() {
     changed = changed || before;
   }
 
+  // Laag 3: lange termijn (EC46 dagelijks, SEAS5 maandelijks)
+  for (const loc of config.locations) {
+    try {
+      if (await updateLongRange(loc, status)) changed = true;
+    } catch (e) { log(loc.id, 'lange termijn mislukt:', e.message); }
+  }
+
   // Alleen schrijven bij nieuwe data, zodat er niet elk uur een lege commit ontstaat.
   if (changed) await writeFile(new URL('data/status.json', ROOT), JSON.stringify(status, null, 1));
   log(changed ? 'Klaar: nieuwe data opgeslagen.' : 'Klaar: niets nieuws.');
+}
+
+// Probeer modelnamen en variabelensets tot er een combinatie werkt.
+async function fetchLong(freq, ids, loc) {
+  let last;
+  for (const id of ids) {
+    for (const vars of LONG_VARS) {
+      try {
+        const data = await getJSON(longUrl(freq, id, vars, loc.lat, loc.lon));
+        const periods = summarizeLong(data, freq);
+        if (periods) return { id, periods };
+      } catch (e) { last = e; if (!(e.status >= 400 && e.status < 500)) throw e; }
+    }
+  }
+  if (last) throw last;
+  return null;
+}
+
+const KEEP_ISSUES = { ec46: 45, seas: 18 };
+
+async function updateLongRange(loc, status) {
+  const path = `data/longrange/${loc.id}.json`;
+  await mkdir(new URL('data/longrange/', ROOT), { recursive: true });
+  const arch = await loadJSON(path, { location: loc, models: {} });
+  let changed = false;
+  for (const [key, m] of Object.entries(LONG_MODELS)) {
+    try {
+      // 1. Klein verzoek (ensemblegemiddelde) om te zien of er een nieuwe uitgave is
+      const quick = await fetchLong(m.freq, m.mean, loc).catch(() => null);
+      const fpMean = quick ? longFingerprint(quick.periods) : null;
+      const a = arch.models[key] || (arch.models[key] = { issues: [] });
+      if (fpMean && a.issues[0]?.fpMean === fpMean) { log(loc.id, key, 'geen nieuwe uitgave'); continue; }
+      // 2. Nieuwe uitgave: liefst alle leden (voor kansen), anders het gemiddelde
+      const full = await fetchLong(m.freq, m.members, loc).catch(() => null) || quick;
+      if (!full) { log(loc.id, key, 'geen data'); continue; }
+      const fp = longFingerprint(full.periods);
+      if (!fpMean && a.issues[0]?.fp === fp) continue;
+      const keys = Object.keys(full.periods).sort();
+      a.id = full.id;
+      a.issues.unshift({
+        issued: keys[0], fetched: new Date().toISOString(), fp, fpMean,
+        source: full === quick ? 'gemiddelde' : 'leden', periods: full.periods,
+      });
+      a.issues = a.issues.slice(0, KEEP_ISSUES[key]);
+      status.long = status.long || {};
+      status.long[key] = { id: full.id, issued: keys[0], fetched: a.issues[0].fetched };
+      changed = true;
+      log(loc.id, key, 'nieuwe uitgave', keys[0], 'via', full.id);
+    } catch (e) {
+      log(loc.id, key, 'mislukt:', e.message);
+    }
+  }
+  if (changed) {
+    arch.location = loc;
+    arch.updated = new Date().toISOString();
+    await writeFile(new URL(path, ROOT), JSON.stringify(arch));
+  }
+  return changed;
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -3,6 +3,9 @@ import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
 } from './lib/stats.js';
+import {
+  LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
+} from './lib/longrange.js';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -80,6 +83,10 @@ async function loadConfigAndHistory() {
   state.history = null;
   if (match) {
     try { state.history = await getJSON(`data/history/${match.id}.json?t=${Date.now()}`); } catch { /* nog geen archief */ }
+  }
+  state.longArchive = null;
+  if (match) {
+    try { state.longArchive = await getJSON(`data/longrange/${match.id}.json?t=${Date.now()}`); } catch { /* nog geen archief */ }
   }
   try { state.status = await getJSON(`data/status.json?t=${Date.now()}`); } catch { state.status = null; }
 }
@@ -509,14 +516,172 @@ function initPlaces() {
   });
 }
 
+// ---------- LAAG 3: lange termijn ----------
+const monthName = (k) => new Date(k + '-15T12:00:00Z').toLocaleDateString('nl-NL', { month: 'long', timeZone: 'UTC' });
+const weekLabel = (k) => {
+  const a = new Date(k + 'T12:00:00Z'), b = new Date(a.getTime() + 6 * 864e5);
+  const m = (d) => d.toLocaleDateString('nl-NL', { month: 'short', timeZone: 'UTC' });
+  return a.getUTCMonth() === b.getUTCMonth() ? `${a.getUTCDate()}–${b.getUTCDate()} ${m(b)}` : `${a.getUTCDate()} ${m(a)}–${b.getUTCDate()} ${m(b)}`;
+};
+const anomTxt = (a) => (a == null ? '–' : `${a > 0 ? '+' : a < 0 ? '−' : ''}${nl(Math.abs(a).toFixed(1))}°`);
+
+// Live ophalen voor plekken zonder archief (bijv. een tijdelijke thuislocatie).
+async function fetchLongLive(key) {
+  const m = LONG_MODELS[key];
+  for (const ids of [m.members, m.mean]) {
+    for (const id of ids) {
+      for (const vars of LONG_VARS) {
+        try {
+          const data = await getJSON(longUrl(m.freq, id, vars, state.loc.lat, state.loc.lon));
+          const periods = summarizeLong(data, m.freq);
+          if (periods) return periods;
+        } catch (e) { if (e.status !== 400) throw e; }
+      }
+    }
+  }
+  return null;
+}
+
+async function longIssues(key) {
+  if (state.longArchive?.models?.[key]?.issues?.length) return state.longArchive.models[key].issues;
+  const lk = `ww.long.${state.loc.lat.toFixed(2)},${state.loc.lon.toFixed(2)}.${key}`;
+  const issues = store.get(lk, []);
+  const periods = await fetchLongLive(key).catch(() => null);
+  if (periods) {
+    const fp = longFingerprint(periods);
+    if (!issues.length || issues[0].fp !== fp) {
+      issues.unshift({ issued: Object.keys(periods).sort()[0], fetched: new Date().toISOString(), fp, periods });
+      store.set(lk, issues.slice(0, 20));
+    }
+  }
+  return issues;
+}
+
+function dbar(rec) {
+  const R = 3; // schaal: ±3 °C
+  const pos = (v) => 50 + (Math.max(-R, Math.min(R, v)) / R) * 50;
+  const a = rec.anom ?? 0;
+  const left = Math.min(pos(0), pos(a)), width = Math.abs(pos(a) - pos(0));
+  const spread = rec.p10 != null ? `<span class="spread" style="left:${pos(rec.p10)}%;width:${pos(rec.p90) - pos(rec.p10)}%"></span>` : '';
+  const col = a < 0 ? `rgb(${mix([108, 196, 255], [235, 248, 255], Math.min(1, -a / 2.5)).join(',')})` : rgb(mix([150, 150, 145], [255, 138, 107], Math.min(1, a / 2.5)));
+  return `<div class="dbar" aria-hidden="true">${spread}<span style="left:${left}%;width:${Math.max(width, 0.8)}%;background:${col}"></span></div>`;
+}
+
+function longRows(cur, prev, freq, labelFn, isPast) {
+  const delta = compareLong(cur, prev, freq);
+  return Object.keys(cur).sort().filter((k) => !isPast(k)).map((k) => {
+    const r = cur[k];
+    const probs = r.pCold != null ? `kans kouder ${r.pCold}%, warmer ${r.pWarm}%` : 'alleen ensemblegemiddelde beschikbaar';
+    const d = delta[k] != null ? ` ${deltaHTML(delta[k])} t.o.v. vorige uitgave` : '';
+    return `<li><span class="per">${labelFn(k)}</span>${dbar(r)}<span class="val">${anomTxt(r.anom)}</span>
+      <span class="meta">${probs}${d}</span></li>`;
+  }).join('');
+}
+
+function lineChart(series, xLabels, opts = {}) {
+  const pts = series.flatMap((s) => s.vals).filter((v) => v != null);
+  if (xLabels.length < 2 || pts.length < 2) return `<p class="note">${opts.empty || 'Er zijn nog te weinig uitgaven bewaard voor een ontwikkeling.'}</p>`;
+  const W = 420, H = 180, L = 30, R = 64, T = 14, B = 24;
+  let ymin = Math.floor(Math.min(0, ...pts) - 0.5), ymax = Math.ceil(Math.max(0, ...pts) + 0.5);
+  const x = (i) => L + (i / (xLabels.length - 1)) * (W - L - R);
+  const y = (t) => T + (1 - (t - ymin) / (ymax - ymin)) * (H - T - B);
+  let g = '';
+  for (let t = ymin; t <= ymax; t++) g += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="${t === 0 ? 'var(--ink-soft)' : 'var(--line)'}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-soft)">${t > 0 ? '+' : ''}${t}°</text>`;
+  xLabels.forEach((lab, i) => {
+    if (xLabels.length > 6 && i % Math.ceil(xLabels.length / 6) && i !== xLabels.length - 1) return;
+    g += `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}" font-size="10" fill="var(--ink-soft)">${esc(lab)}</text>`;
+  });
+  const ends = [];
+  series.forEach((s) => {
+    let d = '', pen = false, lastI = -1;
+    s.vals.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i)},${y(v)}`; pen = true; lastI = i; });
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" ${s.dash ? `stroke-dasharray="${s.dash}"` : ''}/>`;
+    s.vals.forEach((v, i) => { if (v != null) g += `<circle cx="${x(i)}" cy="${y(v)}" r="2.6" fill="${s.color}"/>`; });
+    if (lastI >= 0) ends.push({ x: x(lastI) + 6, y: y(s.vals[lastI]) + 4, s });
+  });
+  // labels aan het eind niet over elkaar heen laten vallen
+  ends.sort((a, b) => a.y - b.y).forEach((e, i, arr) => { if (i && e.y - arr[i - 1].y < 13) e.y = arr[i - 1].y + 13; });
+  ends.forEach((e) => { g += `<text x="${e.x}" y="${e.y}" font-size="11" fill="${e.s.color}">${esc(e.s.name)}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Ontwikkeling')}">${g}</svg>`;
+}
+
+async function renderWinter() {
+  $('seasHead').textContent = 'De winterverwachting wordt opgehaald…';
+  const [seas, ec46] = await Promise.all([longIssues('seas').catch(() => []), longIssues('ec46').catch(() => [])]);
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Seizoen (SEAS5)
+  if (!seas.length) {
+    $('seasHead').textContent = 'Nog geen seizoensverwachting beschikbaar';
+    $('seasSub').textContent = 'De seizoensverwachting verschijnt na de volgende automatische update.';
+    $('seasList').innerHTML = '';
+  } else {
+    const cur = seas[0], prev = seas[1];
+    const wm = winterMean(cur.periods), wp = prev ? winterMean(prev.periods) : null;
+    const issueTxt = monthName(cur.issued.slice(0, 7));
+    if (wm) {
+      const a = wm.anom;
+      $('seasHead').textContent = Math.abs(a) < 0.3 ? 'De winter ziet er normaal uit'
+        : a < 0 ? `De winter wordt ${nl(Math.abs(a).toFixed(1))}° kouder dan normaal`
+        : `De winter wordt ${nl(a.toFixed(1))}° zachter dan normaal`;
+      let sub = `Gemiddelde van ${wm.months.map(monthName).join(', ')} volgens ${LONG_MODELS.seas.label}, uitgave ${issueTxt}.`;
+      if (wp) {
+        const d = Math.round((a - wp.anom) * 10) / 10;
+        sub += Math.abs(d) < 0.1 ? ' Gelijk aan de vorige uitgave.' : ` Dat is ${nl(Math.abs(d).toFixed(1))}° ${d < 0 ? 'kouder' : 'zachter'} dan de vorige uitgave.`;
+      }
+      $('seasSub').textContent = sub;
+    } else {
+      $('seasHead').textContent = 'Seizoensverwachting';
+      $('seasSub').textContent = `Volgens ${LONG_MODELS.seas.label}, uitgave ${issueTxt}.`;
+    }
+    $('seasNote').innerHTML = `Afwijking per maand. De dunne lichte balk toont de spreiding (10–90% van de leden). ${prev ? `Vergeleken met de uitgave van ${monthName(prev.issued.slice(0, 7))}.` : 'Vanaf de volgende uitgave (de 5e van de maand) zie je hier ook het verschil.'}`;
+    $('seasList').innerHTML = longRows(cur.periods, prev?.periods, 'monthly', (k) => `${monthName(k)}<small>${k.slice(0, 4)}</small>`, (k) => k < today.slice(0, 7));
+  }
+
+  // Weken (EC46)
+  if (!ec46.length) {
+    $('ec46Note').textContent = 'De weekverwachting verschijnt na de volgende automatische update.';
+    $('ec46List').innerHTML = '';
+  } else {
+    const cur = ec46[0], prev = ec46[1];
+    $('ec46Note').innerHTML = `Afwijking per week volgens ${LONG_MODELS.ec46.label} (elke dag nieuw). ${prev ? `Verschil met de uitgave van ${dShort(prev.issued)}: <span class="delta c">blauw</span> kouder, <span class="delta w">rood</span> warmer.` : ''}`;
+    $('ec46List').innerHTML = longRows(cur.periods, prev?.periods, 'weekly', (k) => `${weekLabel(k)}`, (k) => {
+      const end = new Date(new Date(k + 'T12:00:00Z').getTime() + 6 * 864e5).toISOString().slice(0, 10);
+      return end < today;
+    });
+  }
+
+  // Ontwikkeling over uitgaven
+  const sOld = seas.slice(0, 12).reverse();
+  const targets = [...new Set(sOld.flatMap((i) => Object.keys(i.periods)))].filter((k) => ['12', '01', '02'].includes(k.slice(5, 7)) && k >= today.slice(0, 7)).sort().slice(0, 3);
+  const colors = ['#bfe6ff', '#ffffff', '#6cc4ff'];
+  $('evoNote').textContent = 'Boven: de verwachte afwijking voor december, januari en februari, per seizoensuitgave. Onder: de verwachte afwijking voor week 3 en 4 vooruit, per dagelijkse EC46-uitgave. Een dalende lijn betekent dat de modellen steeds kouder worden.';
+  $('evoSeas').innerHTML = lineChart(
+    targets.map((t, i) => ({ name: monthName(t), color: colors[i], dash: i === 1 ? '' : i === 0 ? '5 3' : '2 3', vals: sOld.map((iss) => iss.periods[t]?.anom ?? null) })),
+    sOld.map((iss) => monthName(iss.issued.slice(0, 7)).slice(0, 3)),
+    { label: 'Ontwikkeling seizoensverwachting', empty: 'De ontwikkeling per wintermaand verschijnt vanaf de tweede seizoensuitgave (de 5e van volgende maand).' },
+  );
+  const eOld = ec46.slice(0, 30).reverse();
+  $('evoEc46').innerHTML = lineChart(
+    [{ name: 'week 3–4', color: '#ffffff', vals: eOld.map((iss) => {
+      const ks = Object.keys(iss.periods).sort().slice(2, 4);
+      const v = ks.map((k) => iss.periods[k].anom).filter((x) => x != null);
+      return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null;
+    }) }],
+    eOld.map((iss) => dShort(iss.issued)),
+    { label: 'Ontwikkeling week 3 en 4 volgens EC46', empty: 'De ontwikkeling van week 3–4 verschijnt vanaf de tweede EC46-uitgave (morgen).' },
+  );
+}
+
 // ---------- tabs & verversen ----------
 function showView(v) {
   state.view = v; store.set('ww.view', v);
-  $('tab-5').setAttribute('aria-selected', v === '5');
-  $('tab-14').setAttribute('aria-selected', v === '14');
-  $('view-5').hidden = v !== '5';
-  $('view-14').hidden = v !== '14';
+  for (const k of ['5', '14', '90']) {
+    $(`tab-${k}`).setAttribute('aria-selected', v === k);
+    $(`view-${k}`).hidden = v !== k;
+  }
   if (v === '14') renderDay14();
+  if (v === '90') renderWinter();
 }
 
 async function refresh() {
@@ -529,6 +694,7 @@ async function refresh() {
   ]);
   renderDay5(det, ens?.dates);
   if (state.view === '14') renderDay14();
+  if (state.view === '90') renderWinter();
   $('stamp').textContent = `Bijgewerkt ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
   state.lastRefresh = Date.now();
 }
@@ -537,6 +703,7 @@ function init() {
   $('placeName').textContent = state.loc.name;
   $('tab-5').addEventListener('click', () => showView('5'));
   $('tab-14').addEventListener('click', () => showView('14'));
+  $('tab-90').addEventListener('click', () => showView('90'));
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     state.model = b.dataset.k; renderDay14();

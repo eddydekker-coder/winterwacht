@@ -32,6 +32,7 @@
   <nav class="tabs" role="tablist" aria-label="Verwachtingslaag">
     <button role="tab" id="tab-5" aria-selected="true" aria-controls="view-5">5 dagen</button>
     <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">14 dagen</button>
+    <button role="tab" id="tab-90" aria-selected="false" aria-controls="view-90">Winter</button>
   </nav>
 
   <main>
@@ -80,6 +81,29 @@
       <ul class="openings" id="openings"></ul>
       <figure class="signals" id="signals"></figure>
       <p class="note">NAO-benadering: drukverschil Azoren–IJsland ten opzichte van normaal (indicatief). Oostenwind: aandeel leden met wind uit noordoost tot zuidoost op 850 hPa boven je locatie. Blokkade: druk boven Midden-Scandinavië van 1028 hPa of meer.</p>
+    </section>
+
+    <!-- LAAG 3 -->
+    <section id="view-90" role="tabpanel" aria-labelledby="tab-90" hidden>
+      <div class="verdict">
+        <h1 id="seasHead">De winterverwachting wordt opgehaald…</h1>
+        <p id="seasSub"></p>
+      </div>
+
+      <h2 class="h2">Wintermeter per maand</h2>
+      <p class="note" id="seasNote"></p>
+      <ol class="longlist" id="seasList"></ol>
+
+      <h2 class="h2">De komende weken</h2>
+      <p class="note" id="ec46Note"></p>
+      <ol class="longlist" id="ec46List"></ol>
+
+      <h2 class="h2">Hoe ontwikkelt de verwachting zich?</h2>
+      <p class="note" id="evoNote"></p>
+      <figure class="trend" id="evoSeas"></figure>
+      <figure class="trend" id="evoEc46"></figure>
+
+      <p class="note">Afwijkingen zijn ten opzichte van de eigen klimatologie van het model (de gemiddelde temperatuur voor die periode). Kans kouder = aandeel van de 51 leden dat meer dan 0,5° onder normaal uitkomt. AIFS heeft nog geen publieke lange-termijnversie, daarom is ECMWF hier de hoofdlijn.</p>
     </section>
   </main>
 

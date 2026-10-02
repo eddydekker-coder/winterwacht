@@ -5,6 +5,8 @@ Persoonlijke winter-app voor Ommen (of waar je bent).
 - **5 dagen**: KNMI HARMONIE voor de eerste drie dagen, daarna ECMWF AIFS. Sneeuw- en vorstkansen komen uit het AIFS-ensemble.
 - **14 dagen**: ensemble-pluimen (AIFS, IFS, GEFS, GEM, ICON) met T2m en T850. Per datum zie je of de nieuwste run kouder (blauw) of warmer (rood) is dan de vorige. Daarnaast een trend van dag 8–14 over de laatste runs en grootschalige signalen: NAO-benadering, oostenwind en blokkade boven Scandinavië.
 
+- **Winter**: de lange termijn volgens ECMWF. EC46 geeft weekafwijkingen tot 46 dagen vooruit en wordt dagelijks bijgewerkt. SEAS5 geeft maandafwijkingen tot 7 maanden vooruit en wordt maandelijks op de 5e bijgewerkt. Per maand en per week zie je de wintermeter, de kans op kouder of warmer dan normaal, het verschil met de vorige uitgave, en hoe de verwachting voor december, januari en februari zich uitgave na uitgave ontwikkelt.
+
 De app draait als gewone website op GitHub Pages. Een GitHub Action kijkt elk uur of er een nieuwe modelrun is en bewaart een samenvatting in `data/history/`. Zo ontstaat vanzelf het archief voor de run-tot-run vergelijking.
 
 ## Eenmalig instellen (± 10 minuten)
@@ -43,6 +45,7 @@ Een extra vaste locatie met archief toevoegen? Voeg een regel toe in `config.jso
 |---|---|
 | `index.html`, `styles.css`, `app.js` | De app zelf |
 | `lib/stats.js` | Rekenwerk: dagstatistieken, run-vergelijking, wintermeter en signalen. Gedeeld door app en Action |
+| `lib/longrange.js` | Rekenwerk voor de lange termijn (EC46 en SEAS5) |
 | `scripts/update.mjs` | Haalt nieuwe runs op en archiveert ze (draait in de Action) |
 | `.github/workflows/update.yml` | Elk uur het updatescript draaien |
 | `config.json` | Locaties met archief |
