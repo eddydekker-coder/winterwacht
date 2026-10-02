@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Winterwacht</title>
+  <meta name="description" content="Winterverwachting voor Ommen: 5 dagen, 14-daagse pluimen en run-tot-run trends.">
+  <meta name="theme-color" content="#1b3550">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Winterwacht">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="snow" aria-hidden="true"></canvas>
+
+  <header class="top">
+    <button class="place" id="placeBtn" aria-haspopup="dialog" aria-controls="placeSheet">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>
+      <span id="placeName">Ommen</span>
+    </button>
+    <p class="stamp" id="stamp">Laden…</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Verwachtingslaag">
+    <button role="tab" id="tab-5" aria-selected="true" aria-controls="view-5">5 dagen</button>
+    <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">14 dagen</button>
+  </nav>
+
+  <main>
+    <!-- LAAG 1 -->
+    <section id="view-5" role="tabpanel" aria-labelledby="tab-5">
+      <div class="verdict">
+        <h1 id="verdict">De verwachting wordt opgehaald…</h1>
+        <p id="verdictSub"></p>
+        <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+        <p class="meterlabel"><span>zacht</span><span>Wintermeter: <b id="meterWord">–</b></span><span>ijzig</span></p>
+      </div>
+
+      <ol class="ribbon" id="ribbon" aria-label="Verwachting komende 5 dagen"></ol>
+
+      <details class="models" id="modelsBox">
+        <summary>Per model vergelijken</summary>
+        <div class="tablewrap"><table id="modelTable"></table></div>
+        <p class="note">Hoofdlijn: KNMI HARMONIE voor vandaag tot en met overmorgen, daarna ECMWF AIFS. Sneeuw- en vorstkansen komen uit het AIFS-ensemble (51 leden).</p>
+      </details>
+    </section>
+
+    <!-- LAAG 2 -->
+    <section id="view-14" role="tabpanel" aria-labelledby="tab-14" hidden>
+      <div class="modelpick" role="radiogroup" aria-label="Model" id="modelPick"></div>
+
+      <div class="plumehead">
+        <h2 id="plumeTitle">Temperatuurpluim</h2>
+        <p id="plumeSummary"></p>
+      </div>
+      <figure class="plume" id="plumeT2"></figure>
+
+      <details class="t850" id="t850Box">
+        <summary>T850-pluim <span>temperatuur op ±1,5 km — laat de luchtmassa zien</span></summary>
+        <figure class="plume" id="plumeT850"></figure>
+      </details>
+
+      <h2 class="h2">Per datum, deze run tegen de vorige</h2>
+      <p class="note" id="runNote"></p>
+      <ol class="runlist" id="runList"></ol>
+
+      <h2 class="h2">Wordt de tweede week kouder?</h2>
+      <p class="note">Gemiddelde dagtemperatuur van dag 8 tot en met 14, per run. Een dalende lijn betekent dat de modellen steeds kouder worden.</p>
+      <figure class="trend" id="trend"></figure>
+
+      <h2 class="h2">Openingen naar winterweer</h2>
+      <ul class="openings" id="openings"></ul>
+      <figure class="signals" id="signals"></figure>
+      <p class="note">NAO-benadering: drukverschil Azoren–IJsland ten opzichte van normaal (indicatief). Oostenwind: aandeel leden met wind uit noordoost tot zuidoost op 850 hPa boven je locatie. Blokkade: druk boven Midden-Scandinavië van 1028 hPa of meer.</p>
+    </section>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+
+  <dialog id="placeSheet" aria-labelledby="placeTitle">
+    <form method="dialog" class="sheet">
+      <h2 id="placeTitle">Locatie</h2>
+      <div class="placeopts">
+        <button type="button" id="useHome">Thuis: <span id="homeLabel">Ommen</span></button>
+        <button type="button" id="useGps">Mijn huidige locatie</button>
+      </div>
+      <label for="q">Zoek een plaats</label>
+      <input id="q" type="search" placeholder="Bijvoorbeeld Winterswijk" autocomplete="off">
+      <ul id="results" class="results"></ul>
+      <button type="button" id="resetHome" class="link" hidden>Ommen weer als thuis instellen</button>
+      <button value="close" class="close">Sluiten</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

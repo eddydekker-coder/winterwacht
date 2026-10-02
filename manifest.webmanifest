@@ -1,0 +1,16 @@
+{
+  "name": "Winterwacht",
+  "short_name": "Winterwacht",
+  "description": "Winterverwachting: 5 dagen, 14-daagse pluimen en run-tot-run trends.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1b3550",
+  "theme_color": "#1b3550",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

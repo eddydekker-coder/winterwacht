@@ -1,0 +1,554 @@
+// Winterwacht — app-logica (laag 1: 5 dagen, laag 2: 14-daagse pluimen)
+import {
+  ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
+  extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
+} from './lib/stats.js';
+
+const API = 'https://api.open-meteo.com/v1/forecast';
+const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
+const GEO = 'https://geocoding-api.open-meteo.com/v1/search';
+const TZ = 'Europe/Amsterdam';
+const $ = (id) => document.getElementById(id);
+
+// ---------- opslag (veilig, werkt ook als het niet mag) ----------
+const store = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* geen opslag */ } },
+};
+
+const state = {
+  home: store.get('ww.home', { ...HOME }),
+  loc: null,
+  model: 'aifs',
+  view: store.get('ww.view', '5'),
+  config: { locations: [HOME] },
+  history: null, // archief van de GitHub Action voor deze locatie
+  ens: {},       // cache van live ensemble-data per model
+};
+state.loc = state.home;
+
+// ---------- data ophalen ----------
+async function getJSON(url) {
+  const res = await fetch(url);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.error) { const e = new Error(body.reason || `HTTP ${res.status}`); e.status = res.status; throw e; }
+  return body;
+}
+
+async function fetchDeterministic(loc) {
+  const daily = 'temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code';
+  const out = {};
+  await Promise.all(DETERMINISTIC.map(async (m) => {
+    for (const id of m.ids) {
+      try {
+        const d = await getJSON(`${API}?latitude=${loc.lat}&longitude=${loc.lon}&daily=${daily}&models=${id}&forecast_days=6&timezone=${encodeURIComponent(TZ)}`);
+        out[m.key] = d.daily; return;
+      } catch (e) { if (e.status !== 400) return; }
+    }
+  }));
+  return out;
+}
+
+async function fetchEnsemble(loc, key) {
+  const model = ENSEMBLES.find((m) => m.key === key);
+  const cacheKey = `${key}@${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}`;
+  const hit = state.ens[cacheKey];
+  if (hit && Date.now() - hit.t < 20 * 60e3) return hit.v;
+  const varSets = [
+    'temperature_2m,temperature_850hPa,snowfall,precipitation',
+    'temperature_2m,temperature_850hPa,precipitation',
+    'temperature_2m,snowfall,precipitation',
+    'temperature_2m,precipitation',
+  ];
+  let last;
+  for (const id of model.ids) {
+    for (const vars of varSets) {
+      try {
+        const data = await getJSON(`${ENS}?latitude=${loc.lat}&longitude=${loc.lon}&hourly=${vars}&models=${id}&forecast_days=15&timezone=${encodeURIComponent(TZ)}`);
+        const v = { data, id, dates: summarizeEnsemble(data), fp: fingerprint(data), fetched: new Date().toISOString() };
+        state.ens[cacheKey] = { t: Date.now(), v };
+        return v;
+      } catch (e) { last = e; if (e.status !== 400) throw e; }
+    }
+  }
+  throw last;
+}
+
+async function loadConfigAndHistory() {
+  try { state.config = await getJSON(`config.json?t=${Date.now()}`); } catch { /* standaard blijft */ }
+  const match = state.config.locations.find((l) => distKm(l, state.loc) < 10);
+  state.history = null;
+  if (match) {
+    try { state.history = await getJSON(`data/history/${match.id}.json?t=${Date.now()}`); } catch { /* nog geen archief */ }
+  }
+  try { state.status = await getJSON(`data/status.json?t=${Date.now()}`); } catch { state.status = null; }
+}
+
+function distKm(a, b) {
+  const R = 6371, toR = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toR, dLon = (b.lon - a.lon) * toR;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+// Lokale run-geschiedenis voor plekken zonder archief (bijv. tijdelijke thuislocatie)
+function localHistKey(key) { return `ww.hist.${state.loc.lat.toFixed(2)},${state.loc.lon.toFixed(2)}.${key}`; }
+function runsFor(key, live) {
+  let runs = [];
+  if (state.history?.models?.[key]?.runs) runs = state.history.models[key].runs.slice();
+  else {
+    runs = store.get(localHistKey(key), []);
+  }
+  if (live) {
+    const liveRun = { fp: live.fp, fetched: live.fetched, dates: live.dates, live: true };
+    const keys = Object.keys(live.dates).sort();
+    liveRun.w17 = windowMean(live.dates, 0, 6, keys[0]);
+    liveRun.w814 = windowMean(live.dates, 7, 13, keys[0]);
+    if (!runs.length || runs[0].fp !== live.fp) runs.unshift(liveRun);
+    if (!state.history?.models?.[key]) store.set(localHistKey(key), runs.slice(0, 16));
+  }
+  return runs;
+}
+
+// ---------- kleur & sfeer ----------
+const STOPS = [ // temperatuur → achtergrond dagkolom
+  [-12, [10, 30, 62]], [-6, [24, 70, 122]], [-1, [46, 112, 170]], [3, [80, 128, 160]],
+  [8, [96, 112, 122]], [14, [110, 112, 110]], [22, [126, 112, 96]],
+];
+function tempRGB(t) {
+  if (t == null) return [90, 100, 110];
+  if (t <= STOPS[0][0]) return STOPS[0][1];
+  for (let i = 1; i < STOPS.length; i++) {
+    if (t <= STOPS[i][0]) {
+      const [t0, c0] = STOPS[i - 1], [t1, c1] = STOPS[i];
+      const f = (t - t0) / (t1 - t0);
+      return c0.map((c, k) => Math.round(c + (c1[k] - c) * f));
+    }
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mix = (a, b, f) => a.map((x, i) => Math.round(x + (b[i] - x) * f));
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+function applyMood(score) {
+  const f = score / 100;
+  const root = document.documentElement.style;
+  const top = mix(hex('#6a7378'), hex('#2c6aa2'), f);
+  const bottom = mix(hex('#343c41'), hex('#0b2138'), f);
+  root.setProperty('--sky-top', rgb(top));
+  root.setProperty('--sky-bottom', rgb(bottom));
+  root.setProperty('--rime', String(Math.max(0, (score - 50) / 50)));
+  document.querySelector('meta[name=theme-color]').setAttribute('content', rgb(top));
+  $('meterFill').style.left = `${score}%`;
+  $('meterWord').textContent = score >= 80 ? 'ijzig' : score >= 60 ? 'winters' : score >= 45 ? 'fris' : score >= 30 ? 'normaal' : 'zacht';
+}
+
+// ---------- iconen ----------
+function wxIcon(code, snow) {
+  const s = 'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"';
+  const cloud = `<path ${s} d="M8 18h9a4 4 0 0 0 .6-8 5.5 5.5 0 0 0-10.6 1.4A3.3 3.3 0 0 0 8 18Z"/>`;
+  if (snow || [71, 73, 75, 77, 85, 86].includes(code)) return `<svg class="wx" viewBox="0 0 24 24" aria-label="sneeuw"><path ${s} d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 6l2.5-1.5M9.5 19.5 12 18l2.5 1.5"/></svg>`;
+  if (code >= 51 && code <= 67 || (code >= 80 && code <= 82) || code >= 95) return `<svg class="wx" viewBox="0 0 24 24" aria-label="regen">${cloud}<path ${s} d="M9 20.5l-1 2M13 20.5l-1 2M17 20.5l-1 2"/></svg>`;
+  if (code === 45 || code === 48) return `<svg class="wx" viewBox="0 0 24 24" aria-label="mist"><path ${s} d="M4 9h16M3 13h18M5 17h14"/></svg>`;
+  if (code <= 1) return `<svg class="wx" viewBox="0 0 24 24" aria-label="zonnig"><circle ${s} cx="12" cy="12" r="4"/><path ${s} d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>`;
+  if (code === 2) return `<svg class="wx" viewBox="0 0 24 24" aria-label="half bewolkt"><circle ${s} cx="8" cy="8" r="3"/>${cloud}</svg>`;
+  return `<svg class="wx" viewBox="0 0 24 24" aria-label="bewolkt">${cloud}</svg>`;
+}
+
+const DAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+const dLabel = (d, i) => (i === 0 ? 'Vandaag' : i === 1 ? 'Morgen' : DAYS[new Date(d + 'T12:00:00Z').getUTCDay()]);
+const dShort = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const dLong = (d) => new Date(d + 'T12:00:00Z').toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const nl = (x) => String(x).replace('.', ',');
+const deg = (t) => (t == null ? '–' : `${Math.round(t)}°`);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- LAAG 1 ----------
+function blendDays(det, ens) {
+  const base = det.knmi || det.aifs || det.ifs;
+  if (!base) return [];
+  return base.time.slice(0, 5).map((date, i) => {
+    const order = i <= 2 ? ['knmi', 'aifs', 'ifs'] : ['aifs', 'ifs', 'knmi'];
+    const pick = (field) => {
+      for (const k of order) {
+        const src = det[k]; if (!src) continue;
+        const j = src.time.indexOf(date);
+        if (j >= 0 && src[field]?.[j] != null) return { v: src[field][j], k };
+      }
+      return { v: null, k: null };
+    };
+    const tx = pick('temperature_2m_max'), tn = pick('temperature_2m_min');
+    const e = ens?.[date] || {};
+    return {
+      date, tx: tx.v, tn: tn.v, src: tx.k,
+      snow: Math.round((pick('snowfall_sum').v ?? 0) * 10) / 10,
+      code: pick('weather_code').v,
+      pSnow: e.pSnow, pFrost: e.pFrost, pIce: e.pIce,
+    };
+  });
+}
+
+function verdict(days) {
+  const mode = seasonMode(monthOf(days[0].date));
+  const snowDay = days.find((d) => d.snow >= 0.3 || (d.pSnow ?? 0) >= 40);
+  const ice = days.find((d) => d.tx != null && d.tx < 0);
+  const frost = days.filter((d) => d.tn != null && d.tn < 0);
+  const first = days[0], last = days[days.length - 1];
+  const dTx = last.tx - first.tx;
+  let h;
+  if (snowDay) { const dag = dLong(snowDay.date).split(' ')[0]; h = snowDay.snow >= 0.3 ? `${dag[0].toUpperCase() + dag.slice(1)} sneeuw in ${state.loc.name}: ${nl(snowDay.snow)} cm` : `Kans op sneeuw op ${dag}`; }
+  else if (ice) h = `IJsdag in zicht op ${dLong(ice.date).split(' ')[0]}`;
+  else if (frost.length) h = mode === 'winter' ? `${frost.length} ${frost.length === 1 ? 'nacht' : 'nachten'} met vorst` : `Nachtvorst op ${dLong(frost[0].date).split(' ')[0]}`;
+  else if (dTx <= -3) h = 'Ja, het wordt frisser';
+  else if (dTx >= 3) h = 'Nee, het wordt zachter';
+  else h = 'Weinig verandering de komende dagen';
+
+  const coldest = Math.min(...days.map((d) => d.tn ?? 99));
+  const anom = days.reduce((s, d) => { const m = monthOf(d.date) - 1; return s + ((d.tx - NORMAL_TX[m]) + (d.tn - NORMAL_TN[m])) / 2; }, 0) / days.length;
+  const anomTxt = Math.abs(anom) < 0.7 ? 'rond normaal voor de tijd van het jaar' : `${Math.abs(anom).toFixed(1).replace('.', ',')}° ${anom < 0 ? 'kouder' : 'warmer'} dan normaal`;
+  const sub = `Overdag van ${deg(first.tx)} naar ${deg(last.tx)}, koudste nacht ${deg(coldest)}. Gemiddeld ${anomTxt}.`;
+  return { h, sub };
+}
+
+function renderDay5(det, ens) {
+  const days = blendDays(det, ens);
+  if (!days.length) { $('verdict').textContent = 'Geen verwachting beschikbaar'; return; }
+  const mode = seasonMode(monthOf(days[0].date));
+  const v = verdict(days);
+  $('verdict').textContent = v.h;
+  $('verdictSub').textContent = v.sub;
+  const score = winterScore(days.filter((d) => d.tx != null && d.tn != null));
+  applyMood(score);
+
+  $('ribbon').innerHTML = days.map((d, i) => {
+    const c = tempRGB(d.tx != null && d.tn != null ? (d.tx + d.tn) / 2 : null);
+    const chips = dayHighlights(d, mode).slice(0, 3).map((x) => `<span class="chip ${x.k}">${esc(x.t)}</span>`).join('');
+    const probs = [];
+    if (d.pFrost != null && d.pFrost >= 10) probs.push(`vorst ${d.pFrost}%`);
+    if (d.pSnow != null && d.pSnow >= 10) probs.push(`sneeuw ${d.pSnow}%`);
+    return `<li class="day" style="--day-bg:${rgb(c, 0.55)}">
+      <span class="dname">${dLabel(d.date, i)}</span>
+      <span class="ddate">${dShort(d.date)}</span>
+      ${wxIcon(d.code, d.snow >= 0.3)}
+      <span class="tx" aria-label="maximum">${deg(d.tx)}</span>
+      <span class="tn" aria-label="minimum">${deg(d.tn)}</span>
+      <span class="chips">${chips}</span>
+      ${probs.length ? `<span class="prob">${probs.join('<br>')}</span>` : ''}
+    </li>`;
+  }).join('');
+
+  // modeltabel
+  const rows = [['knmi', 'KNMI'], ['aifs', 'AIFS'], ['ifs', 'IFS']].filter(([k]) => det[k]);
+  $('modelTable').innerHTML = `<thead><tr><th>Max / min</th>${days.map((d, i) => `<th>${dLabel(d.date, i)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(([k, name]) => `<tr><td>${name}</td>${days.map((d) => {
+      const j = det[k].time.indexOf(d.date);
+      if (j < 0 || det[k].temperature_2m_max[j] == null) return '<td>–</td>';
+      const sn = det[k].snowfall_sum?.[j];
+      return `<td><span class="num">${deg(det[k].temperature_2m_max[j])}/${deg(det[k].temperature_2m_min[j])}</span>${sn >= 0.3 ? `<br><small>${nl(Math.round(sn * 10) / 10)} cm</small>` : ''}</td>`;
+    }).join('')}</tr>`).join('')}</tbody>`;
+
+  startSnow(days.some((d) => d.snow >= 0.3 || (d.pSnow ?? 0) >= 30));
+}
+
+// ---------- LAAG 2: pluim ----------
+function plumeSVG(times, members, opts = {}) {
+  const W = 420, H = opts.h || 250, L = 30, R = 8, T = 12, B = 28;
+  const n = times.length;
+  const means = [], lo = [], hi = [];
+  let ymin = Infinity, ymax = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const col = members.map((m) => m[i]).filter((x) => x != null);
+    if (!col.length) { means.push(null); lo.push(null); hi.push(null); continue; }
+    means.push(col.reduce((s, x) => s + x, 0) / col.length);
+    lo.push(pct(col, 0.1)); hi.push(pct(col, 0.9));
+    ymin = Math.min(ymin, ...col); ymax = Math.max(ymax, ...col);
+  }
+  if (!Number.isFinite(ymin)) return '<p class="note">Geen data voor deze pluim.</p>';
+  ymin = Math.floor((ymin - 1) / 5) * 5; ymax = Math.ceil((ymax + 1) / 5) * 5;
+  const x = (i) => L + (i / (n - 1)) * (W - L - R);
+  const y = (t) => T + (1 - (t - ymin) / (ymax - ymin)) * (H - T - B);
+  const path = (arr) => {
+    let d = '', pen = false;
+    arr.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen = true; });
+    return d;
+  };
+  let g = '';
+  for (let t = ymin; t <= ymax; t += 5) {
+    g += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="${t === 0 ? 'var(--frost)' : 'var(--line)'}" stroke-width="${t === 0 ? 1.5 : 1}"/>`;
+    g += `<text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-soft)">${t}°</text>`;
+  }
+  let dayNo = 0;
+  times.forEach((t, i) => {
+    if (t.slice(11, 13) !== '00' || i === 0) return;
+    dayNo++;
+    const d = t.slice(0, 10);
+    const wd = new Date(d + 'T12:00:00Z').getUTCDay();
+    g += `<line x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${H - B}" stroke="var(--line)" stroke-dasharray="${wd === 1 ? '0' : '2 4'}"/>`;
+    if (x(i) < W - 24 && dayNo % 2 === 1) g += `<text x="${x(i) + 3}" y="${H - B + 16}" font-size="10.5" fill="var(--ink-soft)">${DAYS[wd]} ${Number(d.slice(8))}</text>`;
+  });
+  const band = (() => {
+    const up = [], dn = [];
+    hi.forEach((v, i) => { if (v != null) up.push(`${x(i).toFixed(1)},${y(v).toFixed(1)}`); });
+    lo.forEach((v, i) => { if (v != null) dn.unshift(`${x(i).toFixed(1)},${y(v).toFixed(1)}`); });
+    return `<polygon points="${up.concat(dn).join(' ')}" fill="var(--frost)" opacity="0.16"/>`;
+  })();
+  const mem = members.map((m) => `<path d="${path(m)}" fill="none" stroke="var(--ink)" stroke-opacity="0.18" stroke-width="0.8"/>`).join('');
+  const nowIdx = times.findIndex((t) => new Date(t) >= new Date());
+  const now = nowIdx > 0 ? `<line x1="${x(nowIdx)}" x2="${x(nowIdx)}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".5"/><text x="${x(nowIdx) + 3}" y="${T + 10}" font-size="10" fill="var(--ink-soft)">nu</text>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluim')}">${g}${band}${mem}<path d="${path(means)}" fill="none" stroke="var(--ink)" stroke-width="2.6"/>${now}</svg>`;
+}
+
+function trendSVG(runs) {
+  const pts = runs.slice(0, 16).reverse().filter((r) => r.w814 != null || r.w17 != null);
+  if (pts.length < 2) return '<p class="note">De trend verschijnt zodra er minstens twee runs zijn bewaard.</p>';
+  const W = 420, H = 170, L = 30, R = 10, T = 18, B = 24;
+  const vals = pts.flatMap((p) => [p.w814, p.w17]).filter((v) => v != null);
+  let ymin = Math.floor(Math.min(...vals) - 1), ymax = Math.ceil(Math.max(...vals) + 1);
+  const x = (i) => L + (i / (pts.length - 1)) * (W - L - R);
+  const y = (t) => T + (1 - (t - ymin) / (ymax - ymin)) * (H - T - B);
+  const line = (k, style) => {
+    const d = pts.map((p, i) => (p[k] == null ? '' : `${i ? 'L' : 'M'}${x(i)},${y(p[k])}`)).join('');
+    return `<path d="${d}" fill="none" ${style}/>` + pts.map((p, i) => (p[k] == null ? '' : `<circle cx="${x(i)}" cy="${y(p[k])}" r="3" fill="${k === 'w814' ? 'var(--ink)' : 'var(--ink-soft)'}"/>`)).join('');
+  };
+  let g = '';
+  const step = ymax - ymin > 8 ? 2 : 1;
+  for (let t = ymin; t <= ymax; t += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-soft)">${t}°</text>`;
+  pts.forEach((p, i) => {
+    if (i % Math.ceil(pts.length / 6) && i !== pts.length - 1) return;
+    g += `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle'}" font-size="10" fill="var(--ink-soft)">${runLabel(p, true)}</text>`;
+  });
+  const lastW = pts[pts.length - 1].w814, prevW = pts[pts.length - 2].w814;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trend van dag 8 tot 14 over de laatste runs">${g}${line('w17', 'stroke="var(--ink-soft)" stroke-dasharray="4 4" stroke-width="1.5"')}${line('w814', 'stroke="var(--ink)" stroke-width="2.5"')}
+    <text x="${W - R}" y="11" text-anchor="end" font-size="10.5" fill="var(--ink-soft)">doorgetrokken: dag 8–14 · gestippeld: dag 1–7</text></svg>
+    ${lastW != null && prevW != null ? `<p class="note">Laatste run: dag 8–14 gemiddeld ${String(lastW).replace('.', ',')}°, ${deltaHTML(lastW - prevW)} ten opzichte van de vorige run.</p>` : ''}`;
+}
+
+function runLabel(r, short = false) {
+  if (r.run && !r.estimated) {
+    const d = new Date(r.run);
+    const txt = `${d.getUTCDate()}/${d.getUTCMonth() + 1} ${String(d.getUTCHours()).padStart(2, '0')}z`;
+    return short ? txt : `run ${txt}`;
+  }
+  const f = new Date(r.fetched);
+  const t = f.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
+  if (r.live) return short ? `${f.getDate()}/${f.getMonth() + 1} ${t}` : `nieuwste data (${t} opgehaald)`;
+  return short ? `${f.getDate()}/${f.getMonth() + 1} ${t}` : `run binnengekomen ${f.getDate()}/${f.getMonth() + 1} ${t}`;
+}
+
+function deltaHTML(d) {
+  if (d == null || Number.isNaN(d)) return '';
+  const r = Math.round(d * 10) / 10;
+  if (Math.abs(r) < 0.3) return `<span class="delta z">±0</span>`;
+  return `<span class="delta ${r < 0 ? 'c' : 'w'}">${r > 0 ? '+' : '−'}${String(Math.abs(r)).replace('.', ',')}</span>`;
+}
+
+async function renderDay14() {
+  const pick = $('modelPick');
+  pick.innerHTML = ENSEMBLES.map((m) => `<button role="radio" aria-checked="${m.key === state.model}" data-k="${m.key}">${m.short}</button>`).join('');
+  const model = ENSEMBLES.find((m) => m.key === state.model);
+  $('plumeTitle').textContent = `${model.label}, ${state.loc.name}`;
+  $('plumeSummary').textContent = 'Pluim wordt geladen…';
+  $('plumeT2').innerHTML = ''; $('plumeT850').innerHTML = '';
+  let live;
+  try {
+    live = await fetchEnsemble(state.loc, state.model);
+  } catch (e) {
+    $('plumeSummary').innerHTML = `<span class="err">Kon ${esc(model.label)} niet ophalen (${esc(e.message)}). Probeer een ander model of later opnieuw.</span>`;
+  }
+  if (live) {
+    const h = live.data.hourly;
+    const t2 = extractMembers(h, 'temperature_2m');
+    const t850 = extractMembers(h, 'temperature_850hPa');
+    $('plumeT2').innerHTML = plumeSVG(h.time, t2, { label: `T2m-pluim ${model.label}` });
+    $('plumeT850').innerHTML = t850.length ? plumeSVG(h.time, t850, { label: `T850-pluim ${model.label}`, h: 240 }) : '<p class="note">Dit model levert geen T850 via de bron.</p>';
+    const keys = Object.keys(live.dates).sort();
+    const w = windowMean(live.dates, 7, 13, keys[0]);
+    const lastDay = keys[keys.length - 1];
+    let anomTxt = '';
+    if (w != null) {
+      const later = keys.slice(7, 14);
+      const norm = later.reduce((s, d) => { const m = monthOf(d) - 1; return s + (NORMAL_TX[m] + NORMAL_TN[m]) / 2; }, 0) / later.length;
+      const a = w - norm;
+      anomTxt = ` Dag 8–14 gemiddeld ${String(w).replace('.', ',')}° (${Math.abs(a) < 0.7 ? 'rond normaal' : `${Math.abs(a).toFixed(1).replace('.', ',')}° ${a < 0 ? 'kouder' : 'warmer'} dan normaal`}).`;
+    }
+    $('plumeSummary').textContent = `${t2.length} leden tot en met ${dShort(lastDay)}. Dikke lijn = gemiddelde, band = 10–90% van de leden.${anomTxt}`;
+  }
+
+  // run tegen run
+  const runs = runsFor(state.model, live);
+  const cur = runs[0], prev = runs[1];
+  if (!cur) { $('runList').innerHTML = ''; $('runNote').textContent = 'Nog geen runs beschikbaar.'; }
+  else {
+    const delta = prev ? compareRuns(cur.dates, prev.dates) : {};
+    $('runNote').innerHTML = prev
+      ? `${esc(runLabel(cur))} tegen ${esc(runLabel(prev))}. <span class="delta c">blauw</span> = kouder, <span class="delta w">rood</span> = warmer dan de vorige run.`
+      : `Dit is de eerste run die voor deze locatie is bewaard. Bij de volgende run zie je per datum of het kouder of warmer is geworden.`;
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: TZ });
+    $('runList').innerHTML = `<li class="hdr"><span>Datum</span><span>Max (gem.)</span><span>Min (gem.)</span></li>` +
+      Object.keys(cur.dates).sort().filter((d) => d >= today).map((d) => {
+        const r = cur.dates[d], dd = delta[d] || {};
+        return `<li><span class="d">${DAYS[new Date(d + 'T12:00:00Z').getUTCDay()]} ${dShort(d)}</span>
+          <span><span class="v">${deg(r.tx)}</span>${deltaHTML(dd.dTx)}</span>
+          <span><span class="v">${deg(r.tn)}</span>${deltaHTML(dd.dTn)}</span></li>`;
+      }).join('');
+  }
+  $('trend').innerHTML = trendSVG(runs);
+  renderSignals();
+}
+
+function renderSignals() {
+  const sig = state.history?.signals || state.signalsFallback;
+  if (!sig?.days?.length) {
+    $('openings').innerHTML = '<li>Signalen verschijnen na de eerste automatische update op GitHub.</li>';
+    $('signals').innerHTML = '';
+    return;
+  }
+  const prev = sig.prevOpenings?.[0];
+  $('openings').innerHTML = sig.openings.map((o, i) => `<li class="l${o.level}">${esc(o.text)}${i === 0 && prev && prev.text !== o.text ? `<span class="was">Vorige update: ${esc(prev.text)}</span>` : ''}</li>`).join('');
+  const days = sig.days.filter((d) => d.nao != null || d.pEast != null).slice(0, 15);
+  const W = 420, L = 70, cw = (W - L - 6) / days.length, rh = 26;
+  const rows = [
+    ['NAO', (d) => d.nao, (v) => (v == null ? 'transparent' : v < 0 ? `rgba(108,196,255,${Math.min(1, 0.15 + Math.abs(v) / 2)})` : `rgba(255,138,107,${Math.min(1, 0.15 + v / 2)})`), (v) => (v == null ? '' : nl(v))],
+    ['Oostenwind', (d) => d.pEast, (v) => `rgba(255,255,255,${v == null ? 0 : 0.05 + v / 110})`, (v) => (v == null ? '' : v)],
+    ['Blokkade', (d) => d.pBlock, (v) => `rgba(169,220,255,${v == null ? 0 : 0.05 + v / 110})`, (v) => (v == null ? '' : v)],
+  ];
+  let g = '';
+  rows.forEach(([name, get, col, txt], r) => {
+    const y0 = 8 + r * (rh + 4);
+    g += `<text x="0" y="${y0 + 17}" font-size="10.5" fill="var(--ink-soft)">${name}</text>`;
+    days.forEach((d, i) => {
+      const v = get(d);
+      g += `<rect x="${L + i * cw}" y="${y0}" width="${cw - 2}" height="${rh}" rx="3" fill="${col(v)}"/>`;
+      if (cw > 22) g += `<text x="${L + i * cw + cw / 2 - 1}" y="${y0 + 17}" text-anchor="middle" font-size="10" fill="${v != null && (r === 0 ? Math.abs(v) > 1.2 : v > 55) ? '#0d2a45' : 'var(--ink)'}">${txt(v)}</text>`;
+    });
+  });
+  days.forEach((d, i) => { if (i % 2 === 0) g += `<text x="${L + i * cw + cw / 2}" y="${8 + 3 * (rh + 4) + 12}" text-anchor="middle" font-size="10" fill="var(--ink-soft)">${Number(d.date.slice(8))}</text>`; });
+  $('signals').innerHTML = `<svg viewBox="0 0 ${W} ${8 + 3 * (rh + 4) + 18}" role="img" aria-label="Grootschalige signalen per dag">${g}</svg>`;
+}
+
+// ---------- footer ----------
+function renderFoot() {
+  const st = state.status?.models || {};
+  const parts = ENSEMBLES.filter((m) => st[m.key]).map((m) => `${m.short} ${runLabel(st[m.key], true)}${st[m.key].estimated ? '*' : ''}`);
+  $('foot').innerHTML = `
+    ${parts.length ? `<p>Laatst bewaarde runs: ${parts.join(', ')}${parts.some((p) => p.endsWith('*')) ? ' (* tijdstip van binnenkomst, run-tijd onbekend)' : ''}.</p>` : '<p>Het archief wordt elk uur bijgewerkt door een GitHub Action.</p>'}
+    <p>Data: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0), met modellen van ECMWF, KNMI, NOAA, DWD en ECCC. Dagwaarden uit ensembles zijn gebaseerd op 6-uurlijkse of uurlijkse tijdstappen en kunnen extremen iets afvlakken.</p>`;
+}
+
+// ---------- sneeuw (de enige animatie) ----------
+let snowRAF = null;
+function startSnow(on) {
+  const cv = $('snow');
+  cancelAnimationFrame(snowRAF);
+  const ctx = cv.getContext('2d');
+  if (!on || matchMedia('(prefers-reduced-motion: reduce)').matches) { ctx.clearRect(0, 0, cv.width, cv.height); return; }
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const size = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; };
+  size(); addEventListener('resize', size, { once: true });
+  const flakes = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random(), r: 0.6 + Math.random() * 2, s: 0.0006 + Math.random() * 0.0012, w: Math.random() * 6 }));
+  const t0 = performance.now();
+  const tick = (t) => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    // na 12 seconden laten we de sneeuw rustig uitsterven, zodat het niet blijft afleiden
+    const fade = Math.max(0, 1 - Math.max(0, (t - t0) - 12000) / 4000);
+    ctx.fillStyle = `rgba(255,255,255,${0.75 * fade})`;
+    for (const f of flakes) {
+      f.y += f.s; f.w += 0.01;
+      if (f.y > 1.02) { f.y = -0.02; f.x = Math.random(); }
+      ctx.beginPath();
+      ctx.arc((f.x + Math.sin(f.w) * 0.01) * cv.width, f.y * cv.height, f.r * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (fade > 0) snowRAF = requestAnimationFrame(tick);
+  };
+  snowRAF = requestAnimationFrame(tick);
+}
+
+// ---------- locatie ----------
+function setLocation(loc) {
+  state.loc = loc;
+  $('placeName').textContent = loc.name;
+  refresh();
+}
+function initPlaces() {
+  const dlg = $('placeSheet');
+  const homeLabel = () => { $('homeLabel').textContent = state.home.name; $('resetHome').hidden = distKm(state.home, HOME) < 1; };
+  homeLabel();
+  $('placeBtn').addEventListener('click', () => { homeLabel(); dlg.showModal(); $('q').focus(); });
+  $('useHome').addEventListener('click', () => { dlg.close(); setLocation(state.home); });
+  $('useGps').addEventListener('click', () => {
+    if (!navigator.geolocation) { alert('Locatie wordt niet ondersteund door deze browser.'); return; }
+    $('useGps').textContent = 'Locatie bepalen…';
+    navigator.geolocation.getCurrentPosition((p) => {
+      $('useGps').textContent = 'Mijn huidige locatie';
+      dlg.close();
+      setLocation({ name: 'Hier', lat: Math.round(p.coords.latitude * 1000) / 1000, lon: Math.round(p.coords.longitude * 1000) / 1000 });
+    }, () => { $('useGps').textContent = 'Locatie niet beschikbaar — sta toegang toe in Instellingen'; }, { timeout: 12000, maximumAge: 600000 });
+  });
+  $('resetHome').addEventListener('click', () => { state.home = { ...HOME }; store.set('ww.home', state.home); homeLabel(); dlg.close(); setLocation(state.home); });
+  let timer;
+  $('q').addEventListener('input', (e) => {
+    clearTimeout(timer);
+    const q = e.target.value.trim();
+    if (q.length < 2) { $('results').innerHTML = ''; return; }
+    timer = setTimeout(async () => {
+      try {
+        const r = await getJSON(`${GEO}?name=${encodeURIComponent(q)}&count=6&language=nl&format=json`);
+        const list = r.results || [];
+        $('results').innerHTML = list.length ? list.map((p, i) => `<li><button type="button" data-i="${i}" class="go">${esc(p.name)}<small>${esc([p.admin1, p.country].filter(Boolean).join(', '))}</small></button><button type="button" data-i="${i}" class="sethome">Als thuis</button></li>`).join('') : '<li>Niets gevonden. Probeer een andere spelling.</li>';
+        $('results').onclick = (ev) => {
+          const b = ev.target.closest('button'); if (!b) return;
+          const p = list[Number(b.dataset.i)];
+          const loc = { name: p.name, lat: p.latitude, lon: p.longitude };
+          if (b.classList.contains('sethome')) { state.home = loc; store.set('ww.home', loc); homeLabel(); }
+          dlg.close(); setLocation(loc);
+        };
+      } catch { $('results').innerHTML = '<li>Zoeken lukt nu niet. Controleer je verbinding.</li>'; }
+    }, 300);
+  });
+}
+
+// ---------- tabs & verversen ----------
+function showView(v) {
+  state.view = v; store.set('ww.view', v);
+  $('tab-5').setAttribute('aria-selected', v === '5');
+  $('tab-14').setAttribute('aria-selected', v === '14');
+  $('view-5').hidden = v !== '5';
+  $('view-14').hidden = v !== '14';
+  if (v === '14') renderDay14();
+}
+
+async function refresh() {
+  $('stamp').textContent = 'Bijwerken…';
+  await loadConfigAndHistory();
+  renderFoot();
+  const [det, ens] = await Promise.all([
+    fetchDeterministic(state.loc).catch(() => ({})),
+    fetchEnsemble(state.loc, 'aifs').catch(() => null),
+  ]);
+  renderDay5(det, ens?.dates);
+  if (state.view === '14') renderDay14();
+  $('stamp').textContent = `Bijgewerkt ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+  state.lastRefresh = Date.now();
+}
+
+function init() {
+  $('placeName').textContent = state.loc.name;
+  $('tab-5').addEventListener('click', () => showView('5'));
+  $('tab-14').addEventListener('click', () => showView('14'));
+  $('modelPick').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.model = b.dataset.k; renderDay14();
+  });
+  initPlaces();
+  showView(state.view);
+  refresh();
+  // bij terugkeren naar de app (iPhone): verversen als het langer dan 15 min geleden is
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - (state.lastRefresh || 0) > 15 * 60e3) refresh();
+  });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+init();
