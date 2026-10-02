@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-02T11:57:00.082Z",
+ "checked": "2026-10-02T12:27:05.566Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
@@ -30,6 +30,18 @@
    "run": "2026-10-02T00:00Z",
    "estimated": true,
    "fetched": "2026-10-02T11:57:03.804Z"
+  }
+ },
+ "long": {
+  "ec46": {
+   "id": "ecmwf_ec46",
+   "issued": "2026-09-28",
+   "fetched": "2026-10-02T12:27:08.990Z"
+  },
+  "seas": {
+   "id": "ecmwf_seas5",
+   "issued": "2026-10",
+   "fetched": "2026-10-02T12:27:09.987Z"
   }
  }
 }
