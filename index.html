@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Winterwacht</title>
+  <meta name="author" content="Eddy Dekker">
   <meta name="description" content="Winterverwachting voor Ommen: 5 dagen, 14-daagse pluimen en run-tot-run trends.">
   <meta name="theme-color" content="#1b3550">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -66,6 +67,27 @@
         <p class="hkey"><span class="k-t"></span>temperatuur <span class="k-f"></span>gevoel <span class="k-r"></span>regen <span class="k-n"></span>natte sneeuw <span class="k-s"></span>sneeuw <span class="k-i"></span>ijzel</p>
         <div class="hourdetail" id="hourDetail" aria-live="polite"></div>
         <p class="note" id="hourNote"></p>
+      </section>
+
+      <section class="radar" id="radar" aria-labelledby="radarTitle">
+        <h2 class="h2" id="radarTitle">Buienradar, afgelopen uur</h2>
+        <p class="note">Elke 10 minuten een beeld. Ringen op 10, 25 en 50 km van je locatie helpen je de snelheid en aankomst van buien in te schatten.</p>
+        <div class="rmap" id="radarMap" role="img" aria-label="Radarkaart met neerslag van het afgelopen uur"></div>
+        <div class="rctl">
+          <button type="button" id="radarPlay" class="rbtn" aria-pressed="true"></button>
+          <button type="button" id="radarPrev" class="rbtn" aria-label="Vorig beeld"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <input type="range" id="radarSlider" min="0" max="6" step="1" value="6" aria-label="Kies radarbeeld">
+          <button type="button" id="radarNext" class="rbtn" aria-label="Volgend beeld"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <p class="rtime"><b id="radarTime">--:--</b><span id="radarAgo"></span></p>
+        </div>
+        <div class="rfoot">
+          <div class="rkeys" aria-label="Neerslagintensiteit">
+            <p class="rkey"><span>regen</span><i class="rk"></i><span>zwaar</span></p>
+            <p class="rkey"><span>sneeuw</span><i class="rk sn"></i><span>zwaar</span></p>
+          </div>
+          <button type="button" id="radarCenter" class="link">Terug naar mijn locatie</button>
+        </div>
+        <p class="note err" id="radarStatus" aria-live="polite"></p>
       </section>
 
       <details class="models" id="modelsBox">
@@ -145,6 +167,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>
