@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -46,6 +46,27 @@
       </div>
 
       <ol class="ribbon" id="ribbon" aria-label="Verwachting komende 5 dagen"></ol>
+
+      <section class="hourly" id="hourly" aria-labelledby="hourTitle">
+        <h2 class="h2" id="hourTitle">Uur voor uur</h2>
+        <p class="hourhead" id="hourHead">De uurverwachting wordt opgehaald…</p>
+        <div class="hdays" id="hdays" role="group" aria-label="Spring naar dag"></div>
+        <div class="hwrap">
+          <div class="hscroll" id="hscroll" tabindex="0" aria-label="Uurverwachting, veeg horizontaal"></div>
+          <div class="hlegend" aria-hidden="true">
+            <span style="top:78px">°C</span>
+            <span style="top:216px">mm</span>
+            <span style="top:236px">kans</span>
+            <span style="top:283px">wind</span>
+            <span style="top:303px">Bft</span>
+            <span style="top:320px">km/u</span>
+            <span style="top:336px">stoot</span>
+          </div>
+        </div>
+        <p class="hkey"><span class="k-t"></span>temperatuur <span class="k-f"></span>gevoel <span class="k-r"></span>regen <span class="k-n"></span>natte sneeuw <span class="k-s"></span>sneeuw <span class="k-i"></span>ijzel</p>
+        <div class="hourdetail" id="hourDetail" aria-live="polite"></div>
+        <p class="note" id="hourNote"></p>
+      </section>
 
       <details class="models" id="modelsBox">
         <summary>Per model vergelijken</summary>
@@ -124,6 +145,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

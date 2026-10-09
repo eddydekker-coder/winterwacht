@@ -1,11 +1,14 @@
-// Winterwacht — app-logica (laag 1: 5 dagen, laag 2: 14-daagse pluimen)
+// Winterwacht — app-logica (laag 1: 5 dagen + uur voor uur, laag 2: 14-daagse pluimen, laag 3: lange termijn)
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=4';
+} from './lib/stats.js?v=5';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=4';
+} from './lib/longrange.js?v=5';
+import {
+  HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass,
+} from './lib/hourly.js?v=5';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -234,7 +237,7 @@ function renderDay5(det, ens) {
     const probs = [];
     if (d.pFrost != null && d.pFrost >= 10) probs.push(`vorst ${d.pFrost}%`);
     if (d.pSnow != null && d.pSnow >= 10) probs.push(`sneeuw ${d.pSnow}%`);
-    return `<li class="day" style="--day-bg:${rgb(c, 0.55)}">
+    return `<li class="day" data-date="${d.date}" title="Tik voor de uurverwachting" style="--day-bg:${rgb(c, 0.55)}">
       <span class="dname">${dLabel(d.date, i)}</span>
       <span class="ddate">${dShort(d.date)}</span>
       ${wxIcon(d.code, d.snow >= 0.3)}
@@ -256,6 +259,203 @@ function renderDay5(det, ens) {
     }).join('')}</tr>`).join('')}</tbody>`;
 
   startSnow(days.some((d) => d.snow >= 0.3 || (d.pSnow ?? 0) >= 30));
+}
+
+// ---------- LAAG 1b: uur voor uur ----------
+async function fetchHourly(loc) {
+  const base = `latitude=${loc.lat}&longitude=${loc.lon}&forecast_days=6&timezone=${encodeURIComponent(TZ)}`;
+  const tryModel = async (ids, url) => {
+    for (const id of ids) {
+      for (const vars of [HOURLY_VARS, HOURLY_VARS_MIN]) {
+        try { return await getJSON(`${url}?${base}&hourly=${vars}&models=${id}`); } catch (e) { if (e.status !== 400) return null; }
+      }
+    }
+    return null;
+  };
+  const tryEns = async () => {
+    for (const id of HOURLY_ENS.ids) {
+      try { return await getJSON(`${ENS}?${base}&hourly=precipitation,snowfall&models=${id}`); } catch (e) { if (e.status !== 400) return null; }
+    }
+    return null;
+  };
+  const [knmi, ecmwf, ens] = await Promise.all([tryModel(HOURLY_MODELS.knmi.ids, API), tryModel(HOURLY_MODELS.ecmwf.ids, API), tryEns()]);
+  const ref = knmi || ecmwf;
+  if (!ref) return null;
+  const nowKey = localHourKey(Date.now(), ref.utc_offset_seconds ?? 0);
+  return { steps: buildSteps({ knmi: knmi?.hourly, ecmwf: ecmwf?.hourly, ens: ens?.hourly, nowKey }), hasEns: !!ens, hasKnmi: !!knmi, hasEcmwf: !!ecmwf };
+}
+
+// Weericoon per uur, met maan 's nachts en natte sneeuw/ijzel apart
+function hourIcon(s, cx, cy) {
+  const st = 'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  const cloud = `<path ${st} d="M8 17h9a4 4 0 0 0 .6-8 5.5 5.5 0 0 0-10.6 1.4A3.3 3.3 0 0 0 8 17Z"/>`;
+  const moon = (x, y, r) => `<path ${st} d="M${x + r * 0.35},${y - r} a${r},${r} 0 1 0 ${r * 0.65},${r * 1.55} a${r * 0.8},${r * 0.8} 0 0 1 -${r * 0.65},-${r * 1.55}Z"/>`;
+  const sun = (x, y, r) => `<circle ${st} cx="${x}" cy="${y}" r="${r}"/>` + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => { const c = Math.cos(a * Math.PI / 180), sn = Math.sin(a * Math.PI / 180); return `<path ${st} d="M${x + c * (r + 2)},${y + sn * (r + 2)}L${x + c * (r + 3.6)},${y + sn * (r + 3.6)}"/>`; }).join('');
+  const flake = (x, y) => `<path ${st} d="M${x},${y - 2.6}v5.2M${x - 2.3},${y - 1.3}l4.6,2.6M${x - 2.3},${y + 1.3}l4.6,-2.6"/>`;
+  const drop = (x, y) => `<path ${st} d="M${x},${y}l-1,2"/>`;
+  const night = s.isDay === 0;
+  const cover = s.cloud ?? (s.code <= 1 ? 10 : s.code === 2 ? 50 : 90);
+  let g;
+  if (s.hz.mist) g = `<path ${st} d="M4 9h16M3 13h18M5 17h14"/>`;
+  else if (s.ptype === 'sneeuw') g = `${cloud}${flake(9, 21)}${flake(16, 21)}`;
+  else if (s.ptype === 'natte sneeuw') g = `${cloud}${flake(9, 21)}${drop(16, 19.5)}`;
+  else if (s.ptype === 'ijzel') g = `${cloud}${drop(9, 19.5)}${drop(13, 19.5)}<path ${st} d="M15.5 21.5h4" stroke="var(--warmer)"/>`;
+  else if (s.ptype === 'regen') g = `${cloud}${drop(9, 19.5)}${drop(13, 19.5)}${s.precip >= 1 * s.dur ? drop(17, 19.5) : ''}`;
+  else if (cover < 25) g = night ? moon(12, 12, 6) : sun(12, 12, 4.2);
+  else if (cover < 70) g = `${night ? moon(8, 8, 3.6) : sun(8, 8, 2.6)}${cloud}`;
+  else g = cloud;
+  return `<g transform="translate(${cx - 12},${cy - 12})" class="hicon">${g}</g>`;
+}
+
+const PCOL = { regen: '#7cc8ff', 'natte sneeuw': '#c7c3ff', sneeuw: '#ffffff', ijzel: '#ff8a6b' };
+const HZ_TXT = { ijzel: 'ijzel', sneeuw: 'gladheid door sneeuw', opvriezing: 'opvriezing natte weg', rijp: 'rijp' };
+
+function hourlySVG(steps) {
+  const CW = 46, W = steps.length * CW;
+  const Y = { day: 13, hour: 32, icon: 54, tTop: 84, tBot: 172, pTop: 186, pBot: 232, pop: 246, hz: 266, arrow: 290, bft: 314, kmh: 330, gust: 346 };
+  const H = 356;
+  const x = (i) => i * CW + CW / 2;
+  const temps = steps.flatMap((s) => [s.t, s.feel]).filter((v) => v != null);
+  let lo = Math.floor(Math.min(...temps)), hi = Math.ceil(Math.max(...temps));
+  if (hi - lo < 6) { const m = (hi + lo) / 2; lo = Math.floor(m - 3); hi = Math.ceil(m + 3); }
+  const ty = (t) => Y.tTop + (1 - (t - lo) / (hi - lo)) * (Y.tBot - Y.tTop);
+  const intens = steps.map((s) => (s.precip || 0) / s.dur);
+  const pMax = Math.max(1.5, ...intens);
+  const py = (mmh) => Math.max(mmh > 0 ? 2 : 0, (Math.sqrt(mmh) / Math.sqrt(pMax)) * (Y.pBot - Y.pTop));
+
+  let bg = '', g = '';
+  steps.forEach((s, i) => {
+    const x0 = i * CW;
+    if (s.isDay === 0) bg += `<rect x="${x0}" y="${Y.hour - 14}" width="${CW}" height="${H - Y.hour + 14}" fill="rgba(4,12,24,.16)"/>`;
+    if (s.t != null && s.t <= 0) bg += `<rect x="${x0}" y="${Y.tTop - 8}" width="${CW}" height="${Y.tBot - Y.tTop + 16}" fill="rgba(169,220,255,${s.t <= -5 ? 0.24 : 0.13})"/>`;
+    // dag- en modelscheiding
+    const newDay = i === 0 || s.date !== steps[i - 1].date;
+    const newSrc = i > 0 && s.dur !== steps[i - 1].dur;
+    if (newDay || newSrc) {
+      if (i > 0) g += `<line x1="${x0}" x2="${x0}" y1="${Y.day + 6}" y2="${H}" stroke="var(--ink)" stroke-opacity="${newDay ? 0.35 : 0.2}" ${newSrc && !newDay ? 'stroke-dasharray="3 3"' : ''}/>`;
+    }
+    if (newDay) {
+      const wd = DAYS[new Date(s.date + 'T12:00:00Z').getUTCDay()];
+      g += `<text x="${x0 + 5}" y="${Y.day}" font-size="11.5" font-weight="700" fill="var(--ink)">${i === 0 ? 'Nu' : `${wd} ${Number(s.date.slice(8))}`}</text>`;
+    }
+    if (newSrc) g += `<text x="${x0 + (newDay ? 52 : 5)}" y="${Y.day}" font-size="10" fill="var(--frost)">${s.src === 'ecmwf' ? 'ECMWF' : 'KNMI'} · per ${s.dur} uur →</text>`;
+    // uur
+    g += `<text x="${x(i)}" y="${Y.hour}" text-anchor="middle" font-size="11" fill="var(--ink-soft)">${String(s.hour).padStart(2, '0')}</text>`;
+    g += hourIcon(s, x(i), Y.icon);
+    // temperatuurlabel
+    if (s.t != null) g += `<text x="${x(i)}" y="${ty(s.t) - 9}" text-anchor="middle" font-size="13" font-weight="600" class="hnum" fill="${s.t <= 0 ? 'var(--frost)' : 'var(--ink)'}">${Math.round(s.t)}°</text>`;
+    // neerslagstaaf
+    if (s.precip >= 0.05) {
+      const h = py(intens[i]), col = PCOL[s.ptype] || PCOL.regen;
+      const op = s.pop == null ? 0.85 : 0.35 + 0.6 * (s.pop / 100);
+      g += `<rect x="${x0 + 9}" y="${Y.pBot - h}" width="${CW - 18}" height="${h}" rx="2" fill="${col}" fill-opacity="${op.toFixed(2)}"/>`;
+      g += `<text x="${x(i)}" y="${Y.pBot - h - 4}" text-anchor="middle" font-size="10" fill="var(--ink)">${nl(s.precip >= 10 ? Math.round(s.precip) : s.precip.toFixed(1))}</text>`;
+    }
+    // kans
+    if (s.pop != null) g += `<text x="${x(i)}" y="${Y.pop}" text-anchor="middle" font-size="10" fill="${s.pop >= 50 ? 'var(--ink)' : 'var(--ink-soft)'}" ${s.pop >= 50 ? 'font-weight="700"' : ''}>${s.pop}%</text>`;
+    // gladheid / mist
+    const marks = [];
+    if (s.hz.glad) marks.push(`<g transform="translate(${x(i) - 7},${Y.hz - 10})" class="hz ${s.hz.glad === 'rijp' ? 'soft' : 'hard'}"><path d="M7 1v12M1.8 4l10.4 6M1.8 10l10.4-6M5 2.3 7 3.6l2-1.3M5 11.7 7 10.4l2 1.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></g>`);
+    if (s.hz.mist) marks.push(`<g transform="translate(${x(i) - 7},${Y.hz - 9})" class="hz mist"><path d="M1 3h12M0 7h14M2 11h10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></g>`);
+    if (marks.length === 2) { g += marks[0].replace(`translate(${x(i) - 7},`, `translate(${x(i) - 15},`) + marks[1].replace(`translate(${x(i) - 7},`, `translate(${x(i) + 1},`); }
+    else g += marks.join('');
+    // wind: pijl wijst de stroomrichting aan
+    if (s.dir != null) g += `<g transform="translate(${x(i)},${Y.arrow}) rotate(${(s.dir + 180) % 360})"><path d="M0 -8 L4.5 5 L0 2.4 L-4.5 5 Z" fill="var(--ink)" fill-opacity="${s.bft >= 6 ? 1 : 0.8}"/></g>`;
+    if (s.bft != null) g += `<text x="${x(i)}" y="${Y.bft}" text-anchor="middle" font-size="15" class="hnum" font-weight="${s.bft >= 6 ? 700 : 500}" fill="${s.bft >= 7 ? 'var(--warmer)' : 'var(--ink)'}">${s.bft}</text>`;
+    if (s.wind != null) g += `<text x="${x(i)}" y="${Y.kmh}" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">${s.wind}</text>`;
+    if (s.gust != null) g += `<text x="${x(i)}" y="${Y.gust}" text-anchor="middle" font-size="9.5" fill="${s.gust >= 60 ? 'var(--warmer)' : 'var(--ink-soft)'}" ${s.gust >= 60 ? 'font-weight="700"' : ''}>${s.gust}</text>`;
+  });
+  // 0-graden lijn
+  if (lo < 0 && hi > 0) g = `<line x1="0" x2="${W}" y1="${ty(0)}" y2="${ty(0)}" stroke="var(--frost)" stroke-width="1.2" stroke-dasharray="5 4" stroke-opacity=".8"/>` + g;
+  // lijnen
+  const path = (k) => { let d = '', pen = false; steps.forEach((s, i) => { if (s[k] == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i)},${ty(s[k]).toFixed(1)}`; pen = true; }); return d; };
+  const lines = `<path d="${path('feel')}" fill="none" stroke="var(--frost)" stroke-width="1.6" stroke-dasharray="4 3" stroke-opacity=".9"/>
+    <path d="${path('t')}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>
+    ${steps.map((s, i) => (s.t == null ? '' : `<circle cx="${x(i)}" cy="${ty(s.t).toFixed(1)}" r="2.6" fill="var(--ink)"/>`)).join('')}`;
+  // bodemlijn neerslag
+  const base = `<line x1="0" x2="${W}" y1="${Y.pBot}" y2="${Y.pBot}" stroke="var(--line)"/>`;
+  const sel = `<rect id="hsel" x="0" y="${Y.hour - 15}" width="${CW}" height="${H - Y.hour + 15}" rx="6" fill="rgba(255,255,255,.08)" stroke="var(--ink)" stroke-opacity=".45"/>`;
+  return { svg: `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Uurverwachting: temperatuur, neerslag en wind">${bg}${sel}${base}${g}${lines}</svg>`, CW };
+}
+
+function hourDetail(s) {
+  const time = `${dLong(s.date)} ${String(s.hour).padStart(2, '0')}:00`;
+  const src = s.src === 'knmi' ? 'KNMI HARMONIE' : 'ECMWF IFS';
+  const period = s.dur > 1 ? `in de ${s.dur} uur tot dit tijdstip` : 'in het uur tot dit tijdstip';
+  const rows = [];
+  rows.push(['Temperatuur', `${deg(s.t)} <small>gevoel ${deg(s.feel)} · dauwpunt ${deg(s.td)}</small>`]);
+  const pr = s.precip >= 0.05 ? `${nl(s.precip.toFixed(1))} mm ${s.ptype || ''}` : 'droog';
+  const probs = [s.pop != null ? `kans ${s.pop}%` : null, s.pSnow != null && s.pSnow >= 10 ? `sneeuwkans ${s.pSnow}%` : null].filter(Boolean).join(' · ');
+  rows.push(['Neerslag', `${pr}${s.ptype === 'sneeuw' && s.snow >= 0.1 ? ` (${nl(s.snow.toFixed(1))} cm)` : ''} <small>${period}${probs ? ` · ${probs}` : ''}</small>`]);
+  rows.push(['Wind', `${compass(s.dir)} ${s.bft ?? '–'} Bft <small>${s.wind ?? '–'} km/u${s.gust != null ? ` · stoten ${s.gust} km/u` : ''}</small>`]);
+  const extra = [];
+  if (s.vis != null) extra.push(`zicht ${s.vis >= 10000 ? `${Math.round(s.vis / 1000)} km` : s.vis >= 1000 ? `${nl((s.vis / 1000).toFixed(1))} km` : `${Math.round(s.vis / 10) * 10} m`}`);
+  if (s.ts != null) extra.push(`oppervlak ${deg(s.ts)}`);
+  if (s.cloud != null) extra.push(`bewolking ${s.cloud}%`);
+  if (extra.length) rows.push(['Verder', extra.join(' · ')]);
+  const warn = [s.hz.glad ? HZ_TXT[s.hz.glad] : null, s.hz.mist].filter(Boolean);
+  return `<p class="htime"><b>${time[0].toUpperCase() + time.slice(1)}</b> <span>${src}</span></p>
+    ${warn.length ? `<p class="hwarn">${warn.map((w) => `<span>${esc(w[0].toUpperCase() + w.slice(1))}</span>`).join('')}</p>` : ''}
+    <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+}
+
+const hstate = { steps: [], CW: 46, sel: 0 };
+function selectHour(i, scroll = false) {
+  const s = hstate.steps[i]; if (!s) return;
+  hstate.sel = i;
+  const r = document.getElementById('hsel');
+  if (r) r.setAttribute('x', i * hstate.CW);
+  $('hourDetail').innerHTML = hourDetail(s);
+  if (scroll) $('hscroll').scrollTo({ left: Math.max(0, i * hstate.CW - 60), behavior: 'smooth' });
+  markDayChip();
+}
+function scrollToDate(date) {
+  const i = hstate.steps.findIndex((s) => s.date === date);
+  if (i < 0) return;
+  // kies het middaguur van die dag (of 'nu' bij vandaag)
+  const noon = hstate.steps.findIndex((s) => s.date === date && s.hour >= 12);
+  selectHour(i === 0 ? 0 : noon >= 0 ? noon : i);
+  $('hscroll').scrollTo({ left: Math.max(0, i * hstate.CW - 2), behavior: 'smooth' });
+  $('hourly').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function markDayChip() {
+  const sc = $('hscroll');
+  const i = Math.min(hstate.steps.length - 1, Math.max(0, Math.round((sc.scrollLeft + 80) / hstate.CW)));
+  const d = hstate.steps[i]?.date;
+  for (const b of $('hdays').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.d === d);
+}
+
+function renderHourly(res) {
+  if (!res || !res.steps.length) {
+    $('hourHead').textContent = 'Uurverwachting niet beschikbaar';
+    $('hscroll').innerHTML = '';
+    $('hourDetail').innerHTML = '';
+    return;
+  }
+  const steps = res.steps;
+  hstate.steps = steps;
+  $('hourHead').textContent = hourlyHeadline(steps);
+  const { svg, CW } = hourlySVG(steps);
+  hstate.CW = CW;
+  $('hscroll').innerHTML = svg;
+  const dates = [...new Set(steps.map((s) => s.date))];
+  $('hdays').innerHTML = dates.map((d, i) => `<button type="button" data-d="${d}" aria-pressed="${i === 0}">${dLabel(d, i)}</button>`).join('');
+  const src = [res.hasKnmi ? 'KNMI HARMONIE (2 km) per uur tot 48 uur vooruit' : null, res.hasEcmwf ? 'daarna ECMWF IFS per 3 uur' : null].filter(Boolean).join(', ');
+  $('hourNote').textContent = `${src || 'Bron niet volledig beschikbaar'}. Neerslag per uur of per 3 uur; de kans komt uit het ${HOURLY_ENS.label}${res.hasEns ? '' : ' (nu niet beschikbaar)'}. Gevoelstemperatuur bij kou volgens de windchill-formule die ook het KNMI gebruikt. Gladheid op basis van de oppervlaktetemperatuur van het model; geen officiële waarschuwing.`;
+  selectHour(Math.min(hstate.sel, steps.length - 1));
+}
+
+function initHourly() {
+  $('hscroll').addEventListener('click', (e) => {
+    const svg = $('hscroll').querySelector('svg');
+    if (!svg) return;
+    const box = svg.getBoundingClientRect();
+    selectHour(Math.floor((e.clientX - box.left) / hstate.CW));
+  });
+  let t;
+  $('hscroll').addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(markDayChip, 60); }, { passive: true });
+  $('hdays').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) scrollToDate(b.dataset.d); });
+  $('ribbon').addEventListener('click', (e) => { const li = e.target.closest('.day'); if (li?.dataset.date) scrollToDate(li.dataset.date); });
 }
 
 // ---------- LAAG 2: pluim ----------
@@ -688,11 +888,14 @@ async function refresh() {
   $('stamp').textContent = 'Bijwerken…';
   await loadConfigAndHistory();
   renderFoot();
-  const [det, ens] = await Promise.all([
+  const [det, ens, hourly] = await Promise.all([
     fetchDeterministic(state.loc).catch(() => ({})),
     fetchEnsemble(state.loc, 'aifs').catch(() => null),
+    fetchHourly(state.loc).catch(() => null),
   ]);
   renderDay5(det, ens?.dates);
+  hstate.sel = 0;
+  renderHourly(hourly);
   if (state.view === '14') renderDay14();
   if (state.view === '90') renderWinter();
   $('stamp').textContent = `Bijgewerkt ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
@@ -709,6 +912,7 @@ function init() {
     state.model = b.dataset.k; renderDay14();
   });
   initPlaces();
+  initHourly();
   showView(state.view);
   refresh();
   // bij terugkeren naar de app (iPhone): verversen als het langer dan 15 min geleden is

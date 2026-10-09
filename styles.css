@@ -218,3 +218,54 @@ dialog::backdrop { background: rgba(5, 15, 25, 0.55); }
   * { transition: none !important; }
   #snow { display: none; }
 }
+
+/* ---------- laag 1b: uur voor uur ---------- */
+.day { cursor: pointer; }
+.hourly { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 4px; }
+.hourly .h2 { margin-top: 14px; }
+.hourhead { margin: 0 0 10px; font: 500 1.15rem/1.25 var(--font-num); color: var(--ink); }
+.hdays { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 8px; }
+.hdays::-webkit-scrollbar { display: none; }
+.hdays button {
+  flex: none; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; font-weight: 700; font-size: 0.82rem;
+}
+.hdays button[aria-pressed='true'] { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }
+.hwrap { position: relative; margin: 0 -16px; }
+.hscroll {
+  overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; overscroll-behavior-x: contain; cursor: pointer;
+  background: rgba(0, 0, 0, 0.10);
+}
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll svg { display: block; margin-left: 40px; margin-right: 12px; font-family: var(--font-ui); }
+.hscroll .hnum { font-family: var(--font-num); }
+.hscroll .hicon { color: var(--ink); }
+.hscroll .hz.hard { color: #ffffff; }
+.hscroll .hz.soft { color: var(--frost); }
+.hscroll .hz.mist { color: var(--ink-soft); }
+.hlegend {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 40px; pointer-events: none;
+  background: linear-gradient(90deg, var(--sky-bottom) 70%, transparent);
+}
+.hlegend span { position: absolute; left: 6px; font-size: 0.62rem; color: var(--ink-soft); line-height: 1; }
+.hkey { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.72rem; color: var(--ink-soft); margin: 8px 0 0; }
+.hkey span { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: -6px; }
+.hkey .k-t { height: 2.5px; background: var(--ink); }
+.hkey .k-f { height: 0; border-top: 2px dashed var(--frost); }
+.hkey .k-r { background: #7cc8ff; }
+.hkey .k-n { background: #c7c3ff; }
+.hkey .k-s { background: #fff; }
+.hkey .k-i { background: #ff8a6b; }
+.hourdetail { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--panel); min-height: 120px; }
+.hourdetail .htime { margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.hourdetail .htime span { color: var(--ink-soft); font-size: 0.78rem; }
+.hourdetail .hwarn { margin: 0 0 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.hourdetail .hwarn span { background: #bfe6ff; color: #0d2a45; font-weight: 700; font-size: 0.74rem; padding: 2px 8px; border-radius: 4px; }
+.hourdetail dl { margin: 0; display: grid; grid-template-columns: 6.6em 1fr; gap: 4px 10px; font-size: 0.9rem; }
+.hourdetail dt { color: var(--ink-soft); }
+.hourdetail dd { margin: 0; }
+.hourdetail small { color: var(--ink-soft); font-size: 0.78rem; }
+@media (min-width: 560px) {
+  .hwrap { margin-inline: 0; border-radius: 10px; overflow: hidden; }
+}
