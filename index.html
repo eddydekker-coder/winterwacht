@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -71,7 +71,7 @@
 
       <section class="radar" id="radar" aria-labelledby="radarTitle">
         <h2 class="h2" id="radarTitle">Buienradar, afgelopen uur</h2>
-        <p class="note" id="radarNote">Radarbeelden van het afgelopen uur.</p>
+        <p class="note" id="radarNote">RainViewer, elke 10 minuten een beeld. Ringen op 10, 25 en 50 km van je locatie helpen je de snelheid en aankomst van buien in te schatten.</p>
         <div class="rmap" id="radarMap" role="img" aria-label="Radarkaart met neerslag van het afgelopen uur"></div>
         <div class="rctl">
           <button type="button" id="radarPlay" class="rbtn" aria-pressed="true"></button>
@@ -85,7 +85,6 @@
             <p class="rkey"><span>regen</span><i class="rk"></i><span>zwaar</span></p>
             <p class="rkey"><span>sneeuw</span><i class="rk sn"></i><span>zwaar</span></p>
           </div>
-          <div class="rkeydwd" id="radarKeyDwd" hidden><img id="radarLegend" alt="Kleurenschaal neerslag in mm per uur"></div>
           <button type="button" id="radarCenter" class="link">Terug naar mijn locatie</button>
         </div>
         <p class="note err" id="radarStatus" aria-live="polite"></p>
@@ -168,6 +167,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=8"></script>
+  <script type="module" src="app.js?v=9"></script>
 </body>
 </html>
