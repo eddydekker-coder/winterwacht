@@ -2,14 +2,14 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=7';
+} from './lib/stats.js?v=8';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=7';
+} from './lib/longrange.js?v=8';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass,
-} from './lib/hourly.js?v=7';
-import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=7';
+} from './lib/hourly.js?v=8';
+import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=8';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -641,7 +641,7 @@ function renderFoot() {
   const parts = ENSEMBLES.filter((m) => st[m.key]).map((m) => `${m.short} ${runLabel(st[m.key], true)}${st[m.key].estimated ? '*' : ''}`);
   $('foot').innerHTML = `
     ${parts.length ? `<p>Laatst bewaarde runs: ${parts.join(', ')}${parts.some((p) => p.endsWith('*')) ? ' (* tijdstip van binnenkomst, run-tijd onbekend)' : ''}.</p>` : '<p>Het archief wordt elk uur bijgewerkt door een GitHub Action.</p>'}
-    <p>Data: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0), met modellen van ECMWF, KNMI, NOAA, DWD en ECCC. Dagwaarden uit ensembles zijn gebaseerd op 6-uurlijkse of uurlijkse tijdstappen en kunnen extremen iets afvlakken. Radar: <a href="https://www.rainviewer.com/">RainViewer</a>; kaart: © OpenStreetMap-bijdragers.</p>
+    <p>Data: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0), met modellen van ECMWF, KNMI, NOAA, DWD en ECCC. Dagwaarden uit ensembles zijn gebaseerd op 6-uurlijkse of uurlijkse tijdstappen en kunnen extremen iets afvlakken. Radar: DWD (open data) en RainViewer; kaart: © OpenStreetMap-bijdragers, © CARTO.</p>
     <p class="owner">© ${new Date().getFullYear()} Winterwacht is eigendom van Eddy Dekker.</p>`;
 }
 
@@ -920,6 +920,7 @@ function init() {
   initRadar({
     map: $('radarMap'), play: $('radarPlay'), prev: $('radarPrev'), next: $('radarNext'), slider: $('radarSlider'),
     time: $('radarTime'), ago: $('radarAgo'), center: $('radarCenter'), status: $('radarStatus'),
+    note: $('radarNote'), keyRv: $('radarKeyRv'), keyDwd: $('radarKeyDwd'), legend: $('radarLegend'),
   }, () => state.loc);
   showView(state.view);
   refresh();

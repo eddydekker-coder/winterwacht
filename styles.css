@@ -301,3 +301,6 @@ dialog::backdrop { background: rgba(5, 15, 25, 0.55); }
 @media (min-width: 560px) { .rmap { margin-inline: 0; border-radius: 10px; overflow: hidden; } }
 /* OSM-kaart donker maken: omkeren, kleur terugdraaien, iets dimmen */
 .rmap .osm-dark { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4); }
+.rkeydwd { max-width: 100%; overflow-x: auto; }
+.rkeydwd img { display: block; max-height: 64px; max-width: 100%; object-fit: contain; object-position: left; }
+[hidden] { display: none !important; }
