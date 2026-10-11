@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -31,29 +31,27 @@
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Verwachtingslaag">
-    <button role="tab" id="tab-5" aria-selected="true" aria-controls="view-5">5 dagen</button>
-    <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">14 dagen</button>
+    <button role="tab" id="tab-now" aria-selected="true" aria-controls="view-now">Nu</button>
+    <button role="tab" id="tab-5" aria-selected="false" aria-controls="view-5">5 dagen</button>
+    <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">Lange termijn</button>
     <button role="tab" id="tab-90" aria-selected="false" aria-controls="view-90">Winter</button>
   </nav>
 
   <main>
-    <!-- LAAG 1 -->
-    <section id="view-5" role="tabpanel" aria-labelledby="tab-5">
-      <div class="verdict">
-        <h1 id="verdict">De verwachting wordt opgehaald…</h1>
-        <p id="verdictSub"></p>
-        <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
-        <p class="meterlabel"><span>zacht</span><span>Wintermeter: <b id="meterWord">–</b></span><span>ijzig</span></p>
+    <!-- TAB NU -->
+    <section id="view-now" role="tabpanel" aria-labelledby="tab-now">
+      <div class="nowtop">
+        <div class="nownow"><span class="nowicon" id="nowIcon"></span><span class="nowtemp" id="nowTemp">–</span><span class="nowfeel" id="nowFeel"></span></div>
+        <h1 id="nowHead">De verwachting wordt opgehaald…</h1>
+        <p id="nowSub"></p>
       </div>
+      <div class="ncards" id="nowCards"></div>
 
-      <ol class="ribbon" id="ribbon" aria-label="Verwachting komende 5 dagen"></ol>
-
-      <section class="hourly" id="hourly" aria-labelledby="hourTitle">
-        <h2 class="h2" id="hourTitle">Uur voor uur</h2>
-        <p class="hourhead" id="hourHead">De uurverwachting wordt opgehaald…</p>
-        <div class="hdays" id="hdays" role="group" aria-label="Spring naar dag"></div>
+      <section class="hourly" id="hn" aria-labelledby="hnTitle">
+        <h2 class="h2" id="hnTitle">Uur voor uur tot morgenochtend</h2>
+        <p class="hourhead" id="hnHead">De uurverwachting wordt opgehaald…</p>
         <div class="hwrap">
-          <div class="hscroll" id="hscroll" tabindex="0" aria-label="Uurverwachting, veeg horizontaal"></div>
+          <div class="hscroll" id="hnScroll" tabindex="0" aria-label="Uurverwachting, veeg horizontaal"></div>
           <div class="hlegend" aria-hidden="true">
             <span style="top:78px">°C</span>
             <span style="top:216px">mm</span>
@@ -65,8 +63,8 @@
           </div>
         </div>
         <p class="hkey"><span class="k-t"></span>temperatuur <span class="k-f"></span>gevoel <span class="k-r"></span>regen <span class="k-n"></span>natte sneeuw <span class="k-s"></span>sneeuw <span class="k-i"></span>ijzel</p>
-        <div class="hourdetail" id="hourDetail" aria-live="polite"></div>
-        <p class="note" id="hourNote"></p>
+        <div class="tablewrap htablewrap" id="hnTable"></div>
+        <p class="note" id="hnNote"></p>
       </section>
 
       <section class="radar" id="radar" aria-labelledby="radarTitle">
@@ -89,6 +87,40 @@
         </div>
         <p class="note err" id="radarStatus" aria-live="polite"></p>
       </section>
+    </section>
+
+    <!-- TAB 5 DAGEN -->
+    <section id="view-5" role="tabpanel" aria-labelledby="tab-5" hidden>
+      <div class="verdict">
+        <h1 id="verdict">De verwachting wordt opgehaald…</h1>
+        <p id="verdictSub"></p>
+        <div class="meter" aria-hidden="true"><span id="meterFill"></span></div>
+        <p class="meterlabel"><span>zacht</span><span>Wintermeter: <b id="meterWord">–</b></span><span>ijzig</span></p>
+      </div>
+
+      <ol class="ribbon" id="ribbon" aria-label="Verwachting komende 5 dagen"></ol>
+
+      <section class="hourly" id="h5" aria-labelledby="h5Title">
+        <h2 class="h2" id="h5Title">Uur voor uur</h2>
+        <p class="hourhead" id="h5Head">De uurverwachting wordt opgehaald…</p>
+        <div class="hdays" id="h5Days" role="group" aria-label="Spring naar dag"></div>
+        <div class="hwrap">
+          <div class="hscroll" id="h5Scroll" tabindex="0" aria-label="Uurverwachting, veeg horizontaal"></div>
+          <div class="hlegend" aria-hidden="true">
+            <span style="top:78px">°C</span>
+            <span style="top:216px">mm</span>
+            <span style="top:236px">kans</span>
+            <span style="top:283px">wind</span>
+            <span style="top:303px">Bft</span>
+            <span style="top:320px">km/u</span>
+            <span style="top:336px">stoot</span>
+          </div>
+        </div>
+        <p class="hkey"><span class="k-t"></span>temperatuur <span class="k-f"></span>gevoel <span class="k-r"></span>regen <span class="k-n"></span>natte sneeuw <span class="k-s"></span>sneeuw <span class="k-i"></span>ijzel</p>
+        <div class="hourdetail" id="h5Detail" aria-live="polite"></div>
+        <p class="note" id="h5Note"></p>
+      </section>
+
 
       <details class="models" id="modelsBox">
         <summary>Per model vergelijken</summary>
@@ -97,7 +129,7 @@
       </details>
     </section>
 
-    <!-- LAAG 2 -->
+    <!-- TAB LANGE TERMIJN -->
     <section id="view-14" role="tabpanel" aria-labelledby="tab-14" hidden>
       <div class="modelpick" role="radiogroup" aria-label="Model" id="modelPick"></div>
 
@@ -149,7 +181,7 @@
       <p class="note">NAO-benadering: drukverschil Azoren–IJsland ten opzichte van normaal (indicatief). Oostenwind: aandeel leden met wind uit noordoost tot zuidoost op 850 hPa boven je locatie. Blokkade: druk boven Midden-Scandinavië van 1028 hPa of meer.</p>
     </section>
 
-    <!-- LAAG 3 -->
+    <!-- TAB WINTER -->
     <section id="view-90" role="tabpanel" aria-labelledby="tab-90" hidden>
       <div class="verdict">
         <h1 id="seasHead">De winterverwachting wordt opgehaald…</h1>
@@ -190,6 +222,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=11"></script>
+  <script type="module" src="app.js?v=12"></script>
 </body>
 </html>

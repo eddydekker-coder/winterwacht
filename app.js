@@ -2,15 +2,15 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=11';
+} from './lib/stats.js?v=12';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=11';
+} from './lib/longrange.js?v=12';
 import {
-  HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass,
-} from './lib/hourly.js?v=11';
-import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=11';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=11';
+  HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
+} from './lib/hourly.js?v=12';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=12';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=12';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -28,7 +28,7 @@ const state = {
   home: store.get('ww.home', { ...HOME }),
   loc: null,
   model: 'aifs',
-  view: store.get('ww.view', '5'),
+  view: store.get('ww.view', 'now'),
   config: { locations: [HOME] },
   history: null, // archief van de GitHub Action voor deze locatie
   ens: {},       // cache van live ensemble-data per model
@@ -376,7 +376,7 @@ function hourlySVG(steps) {
     ${steps.map((s, i) => (s.t == null ? '' : `<circle cx="${x(i)}" cy="${ty(s.t).toFixed(1)}" r="2.6" fill="var(--ink)"/>`)).join('')}`;
   // bodemlijn neerslag
   const base = `<line x1="0" x2="${W}" y1="${Y.pBot}" y2="${Y.pBot}" stroke="var(--line)"/>`;
-  const sel = `<rect id="hsel" x="0" y="${Y.hour - 15}" width="${CW}" height="${H - Y.hour + 15}" rx="6" fill="rgba(255,255,255,.08)" stroke="var(--ink)" stroke-opacity=".45"/>`;
+  const sel = `<rect class="hselbox" x="0" y="${Y.hour - 15}" width="${CW}" height="${H - Y.hour + 15}" rx="6" fill="rgba(255,255,255,.08)" stroke="var(--ink)" stroke-opacity=".45"/>`;
   return { svg: `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Uurverwachting: temperatuur, neerslag en wind">${bg}${sel}${base}${g}${lines}</svg>`, CW };
 }
 
@@ -401,63 +401,182 @@ function hourDetail(s) {
     <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
 }
 
-const hstate = { steps: [], CW: 46, sel: 0 };
-function selectHour(i, scroll = false) {
-  const s = hstate.steps[i]; if (!s) return;
-  hstate.sel = i;
-  const r = document.getElementById('hsel');
-  if (r) r.setAttribute('x', i * hstate.CW);
-  $('hourDetail').innerHTML = hourDetail(s);
-  if (scroll) $('hscroll').scrollTo({ left: Math.max(0, i * hstate.CW - 60), behavior: 'smooth' });
-  markDayChip();
-}
-function scrollToDate(date) {
-  const i = hstate.steps.findIndex((s) => s.date === date);
-  if (i < 0) return;
-  // kies het middaguur van die dag (of 'nu' bij vandaag)
-  const noon = hstate.steps.findIndex((s) => s.date === date && s.hour >= 12);
-  selectHour(i === 0 ? 0 : noon >= 0 ? noon : i);
-  $('hscroll').scrollTo({ left: Math.max(0, i * hstate.CW - 2), behavior: 'smooth' });
-  $('hourly').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function markDayChip() {
-  const sc = $('hscroll');
-  const i = Math.min(hstate.steps.length - 1, Math.max(0, Math.round((sc.scrollLeft + 80) / hstate.CW)));
-  const d = hstate.steps[i]?.date;
-  for (const b of $('hdays').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.d === d);
+// Uitgebreide uurtabel voor 'Nu': alles per uur op een rij
+function hourTable(steps) {
+  const vis = (v) => (v == null ? '–' : v >= 10000 ? `${Math.round(v / 1000)} km` : v >= 1000 ? `${nl((v / 1000).toFixed(1))} km` : `${Math.round(v / 10) * 10} m`);
+  const rows = steps.map((s, i) => {
+    const warn = [s.hz.glad ? HZ_TXT[s.hz.glad] : null, s.hz.mist].filter(Boolean);
+    const pr = s.precip >= 0.05 ? `${nl(s.precip.toFixed(1))}<small> mm${s.ptype && s.ptype !== 'regen' ? ` ${s.ptype}` : ''}</small>` : '<span class="dim">–</span>';
+    const newDay = i > 0 && s.date !== steps[i - 1].date;
+    return `${newDay ? `<tr class="dsep"><td colspan="5"><span>${dLong(s.date)}</span></td></tr>` : ''}<tr data-i="${i}" class="${s.isDay === 0 ? 'nt' : ''}${s.t != null && s.t <= 0 ? ' fr' : ''}">
+      <th scope="row"><span class="hcell"><span class="hh">${String(s.hour).padStart(2, '0')}</span><svg viewBox="0 0 24 24" aria-hidden="true">${hourIcon(s, 12, 12)}</svg></span></th>
+      <td><b class="tnum">${deg(s.t)}</b><small>gev. ${deg(s.feel)}</small></td>
+      <td>${pr}<small>${s.pop != null ? `kans ${s.pop}%` : ''}</small></td>
+      <td><b class="tnum"><i class="warr" style="--r:${(s.dir ?? 0) + 180}deg"></i>${s.bft ?? '–'}</b><small>${compass(s.dir)} ${s.wind ?? '–'}${s.gust != null ? ` · ${s.gust}` : ''}</small></td>
+      <td class="more"><small>dauwp. ${deg(s.td)}${s.ts != null ? ` · weg ${deg(s.ts)}` : ''}</small><small>zicht ${vis(s.vis)}${s.cloud != null ? ` · ${s.cloud}%` : ''}</small></td>
+    </tr>${warn.length ? `<tr class="wrow" data-i="${i}"><td></td><td colspan="4">${warn.map((w) => `<span>${esc(w[0].toUpperCase() + w.slice(1))}</span>`).join('')}</td></tr>` : ''}`;
+  }).join('');
+  return `<table class="htable"><thead><tr><th>Uur</th><th>Temp</th><th>Neerslag</th><th>Wind<small>Bft · km/u · stoot</small></th><th>Verder<small>dauwpunt, wegdek, zicht, bewolking</small></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function renderHourly(res) {
-  if (!res || !res.steps.length) {
-    $('hourHead').textContent = 'Uurverwachting niet beschikbaar';
-    $('hscroll').innerHTML = '';
-    $('hourDetail').innerHTML = '';
+// Eén uurstrook-component, twee keer gebruikt: in 'Nu' (tot 06:00 morgenochtend) en in '5 dagen' (alles).
+const HOURLY_NOTE = (res) => {
+  const src = [res.hasKnmi ? 'KNMI HARMONIE (2 km) per uur tot 48 uur vooruit' : null, res.hasEcmwf ? 'daarna ECMWF IFS per 3 uur' : null].filter(Boolean).join(', ');
+  return `${src || 'Bron niet volledig beschikbaar'}. Neerslag per uur of per 3 uur; de kans komt uit het ${HOURLY_ENS.label}${res.hasEns ? '' : ' (nu niet beschikbaar)'}. Gevoelstemperatuur bij kou volgens de windchill-formule die ook het KNMI gebruikt. Gladheid op basis van de oppervlaktetemperatuur van het model; geen officiële waarschuwing.`;
+};
+function makeHourly(p, { chips = true } = {}) {
+  const el = (k) => $(`${p}${k}`);
+  const st = { steps: [], CW: 46, sel: 0 };
+  const markDayChip = () => {
+    if (!chips) return;
+    const sc = el('Scroll');
+    const i = Math.min(st.steps.length - 1, Math.max(0, Math.round((sc.scrollLeft + 80) / st.CW)));
+    const d = st.steps[i]?.date;
+    for (const b of el('Days').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.d === d);
+  };
+  const select = (i) => {
+    const s = st.steps[i]; if (!s) return;
+    st.sel = i;
+    const r = el('Scroll').querySelector('.hselbox');
+    if (r) r.setAttribute('x', i * st.CW);
+    if (el('Detail')) el('Detail').innerHTML = hourDetail(s);
+    if (el('Table')) {
+      for (const tr of el('Table').querySelectorAll('tr[data-i]')) tr.classList.toggle('sel', Number(tr.dataset.i) === i);
+    }
+    markDayChip();
+  };
+  const scrollToDate = (date) => {
+    const i = st.steps.findIndex((s) => s.date === date);
+    if (i < 0) return;
+    const noon = st.steps.findIndex((s) => s.date === date && s.hour >= 12);
+    select(i === 0 ? 0 : noon >= 0 ? noon : i);
+    el('Scroll').scrollTo({ left: Math.max(0, i * st.CW - 2), behavior: 'smooth' });
+    el('').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+  const render = (res, steps, head) => {
+    if (!res || !steps?.length) {
+      el('Head').textContent = 'Uurverwachting niet beschikbaar';
+      el('Scroll').innerHTML = ''; if (el('Detail')) el('Detail').innerHTML = ''; if (el('Table')) el('Table').innerHTML = '';
+      if (chips) el('Days').innerHTML = '';
+      return;
+    }
+    st.steps = steps;
+    el('Head').textContent = head ?? hourlyHeadline(steps);
+    const { svg, CW } = hourlySVG(steps);
+    st.CW = CW;
+    el('Scroll').innerHTML = svg;
+    el('Scroll').scrollLeft = 0;
+    if (chips) {
+      const dates = [...new Set(steps.map((s) => s.date))];
+      el('Days').innerHTML = dates.map((d, i) => `<button type="button" data-d="${d}" aria-pressed="${i === 0}">${dLabel(d, i)}</button>`).join('');
+    }
+    el('Note').textContent = HOURLY_NOTE(res);
+    if (el('Table')) el('Table').innerHTML = hourTable(steps);
+    select(Math.min(st.sel, steps.length - 1));
+  };
+  const init = () => {
+    el('Scroll').addEventListener('click', (e) => {
+      const svg = el('Scroll').querySelector('svg');
+      if (!svg) return;
+      select(Math.floor((e.clientX - svg.getBoundingClientRect().left) / st.CW));
+    });
+    let t;
+    el('Scroll').addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(markDayChip, 60); }, { passive: true });
+    if (chips) el('Days').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) scrollToDate(b.dataset.d); });
+    // tik op een tabelrij: zelfde uur in de strook selecteren en in beeld schuiven
+    if (el('Table')) el('Table').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr[data-i]'); if (!tr) return;
+      const i = Number(tr.dataset.i); select(i);
+      el('Scroll').scrollTo({ left: Math.max(0, i * st.CW - 60), behavior: 'smooth' });
+    });
+  };
+  return { st, render, init, scrollToDate, reset: () => { st.sel = 0; } };
+}
+const hNow = makeHourly('hn', { chips: false });
+const h5 = makeHourly('h5');
+
+// ---------- TAB 'NU': rest van vandaag en de komende nacht ----------
+// Eindpunt: 06:00 op de dag na vandaag (lokale tijd van de locatie)
+function nowWindow(steps) {
+  if (!steps.length) return [];
+  const today = steps[0].date;
+  const end = `${addDays(today, 1)}T06:00`;
+  return steps.filter((s) => s.time <= end);
+}
+// Deel het venster op in dagdelen: overdag 06–18, avond en nacht 18–06
+function dayParts(steps) {
+  const parts = [];
+  for (const s of steps) {
+    const night = s.hour >= 18 || s.hour < 6;
+    // nacht na middernacht hoort bij de avond ervoor
+    const key = night ? (s.hour < 6 ? `n:${addDays(s.date, -1)}` : `n:${s.date}`) : `d:${s.date}`;
+    let p = parts.find((x) => x.key === key);
+    if (!p) { p = { key, night, steps: [] }; parts.push(p); }
+    p.steps.push(s);
+  }
+  const today = steps[0]?.date;
+  return parts.map((p, i) => {
+    const first = p.steps[0];
+    let title;
+    if (!p.night) title = i === 0 && first.hour > 7 ? 'Rest van vandaag' : 'Vandaag';
+    else if (p.key === `n:${addDays(today, -1)}`) title = 'Vannacht';
+    else title = i === 0 && first.hour >= 21 ? 'Vannacht' : 'Vanavond en vannacht';
+    const from = String(first.hour).padStart(2, '0'), to = String((p.steps.at(-1).hour + p.steps.at(-1).dur) % 24).padStart(2, '0');
+    return { ...p, title, span: `${from}:00 – ${to}:00` };
+  }).filter((p) => p.steps.length >= 2 || parts.length === 1);
+}
+function partCard(p) {
+  const ss = p.steps;
+  const ts = ss.map((s) => s.t).filter((v) => v != null), fs = ss.map((s) => s.feel).filter((v) => v != null);
+  const tmax = Math.max(...ts), tmin = Math.min(...ts), fmin = Math.min(...fs);
+  const rain = ss.reduce((a, s) => a + (s.precip || 0), 0);
+  const pops = ss.map((s) => s.pop).filter((v) => v != null);
+  const pop = pops.length ? Math.max(...pops) : null;
+  const types = [...new Set(ss.filter((s) => s.ptype).map((s) => s.ptype))];
+  const windy = ss.reduce((a, s) => ((s.wind ?? -1) > (a.wind ?? -1) ? s : a), ss[0]);
+  const gust = Math.max(...ss.map((s) => s.gust ?? 0));
+  const hz = [...new Set(ss.flatMap((s) => [s.hz.glad ? HZ_TXT[s.hz.glad] : null, s.hz.mist]).filter(Boolean))];
+  // representatief icoon: het natste uur, anders het middelste
+  const wet = ss.reduce((a, s) => ((s.precip || 0) > (a.precip || 0) ? s : a), ss[0]);
+  const rep = wet.precip >= 0.1 ? wet : ss[Math.floor(ss.length / 2)];
+  const icon = `<svg class="nicon" viewBox="0 0 24 24" aria-hidden="true">${hourIcon(rep, 12, 12)}</svg>`;
+  const temp = p.night
+    ? `<span class="nbig">${deg(tmin)}</span><span class="nsub">minimum</span>`
+    : `<span class="nbig">${deg(tmax)}</span><span class="nsub">maximum</span>`;
+  const pr = rain >= 0.1 ? `${nl(rain.toFixed(1))} mm ${types.join(', ') || 'neerslag'}` : (pop != null && pop >= 30 ? 'kans op een bui' : 'droog');
+  const rows = [
+    ['Temperatuur', p.night ? `${deg(tmin)} tot ${deg(tmax)}` : `${deg(tmin)} tot ${deg(tmax)}`, `gevoel tot ${deg(fmin)}`],
+    ['Neerslag', pr, pop != null ? `kans ${pop}%` : ''],
+    ['Wind', `${compass(windy.dir)} ${windy.bft ?? '–'} Bft`, gust ? `stoten tot ${gust} km/u` : ''],
+  ];
+  return `<article class="ncard${p.night ? ' night' : ''}">
+    <header><h3>${p.title}</h3><span>${p.span}</span></header>
+    <div class="nmain">${icon}<div class="ntemp">${temp}</div></div>
+    ${hz.length ? `<p class="hwarn">${hz.map((w) => `<span>${esc(w[0].toUpperCase() + w.slice(1))}</span>`).join('')}</p>` : ''}
+    <dl>${rows.map(([k, v, sub]) => `<dt>${k}</dt><dd>${v}${sub ? ` <small>${sub}</small>` : ''}</dd>`).join('')}</dl>
+  </article>`;
+}
+function renderNow(res) {
+  if (!res?.steps?.length) {
+    $('nowHead').textContent = 'De verwachting is nu niet op te halen';
+    $('nowSub').textContent = ''; $('nowCards').innerHTML = '';
+    hNow.render(null);
     return;
   }
-  const steps = res.steps;
-  hstate.steps = steps;
-  $('hourHead').textContent = hourlyHeadline(steps);
-  const { svg, CW } = hourlySVG(steps);
-  hstate.CW = CW;
-  $('hscroll').innerHTML = svg;
-  const dates = [...new Set(steps.map((s) => s.date))];
-  $('hdays').innerHTML = dates.map((d, i) => `<button type="button" data-d="${d}" aria-pressed="${i === 0}">${dLabel(d, i)}</button>`).join('');
-  const src = [res.hasKnmi ? 'KNMI HARMONIE (2 km) per uur tot 48 uur vooruit' : null, res.hasEcmwf ? 'daarna ECMWF IFS per 3 uur' : null].filter(Boolean).join(', ');
-  $('hourNote').textContent = `${src || 'Bron niet volledig beschikbaar'}. Neerslag per uur of per 3 uur; de kans komt uit het ${HOURLY_ENS.label}${res.hasEns ? '' : ' (nu niet beschikbaar)'}. Gevoelstemperatuur bij kou volgens de windchill-formule die ook het KNMI gebruikt. Gladheid op basis van de oppervlaktetemperatuur van het model; geen officiële waarschuwing.`;
-  selectHour(Math.min(hstate.sel, steps.length - 1));
-}
-
-function initHourly() {
-  $('hscroll').addEventListener('click', (e) => {
-    const svg = $('hscroll').querySelector('svg');
-    if (!svg) return;
-    const box = svg.getBoundingClientRect();
-    selectHour(Math.floor((e.clientX - box.left) / hstate.CW));
+  const win = nowWindow(res.steps);
+  const cur = win[0];
+  $('nowTemp').textContent = deg(cur.t);
+  $('nowFeel').textContent = cur.feel != null && Math.round(cur.feel) !== Math.round(cur.t) ? `gevoel ${deg(cur.feel)}` : '';
+  $('nowIcon').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${hourIcon(cur, 12, 12)}</svg>`;
+  const parts = dayParts(win);
+  $('nowHead').textContent = hourlyHeadline(win);
+  const bits = parts.map((p) => {
+    const ts = p.steps.map((s) => s.t).filter((v) => v != null);
+    return p.night ? `${p.title.toLowerCase()} minimaal ${deg(Math.min(...ts))}` : `${p.title.toLowerCase()} tot ${deg(Math.max(...ts))}`;
   });
-  let t;
-  $('hscroll').addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(markDayChip, 60); }, { passive: true });
-  $('hdays').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) scrollToDate(b.dataset.d); });
-  $('ribbon').addEventListener('click', (e) => { const li = e.target.closest('.day'); if (li?.dataset.date) scrollToDate(li.dataset.date); });
+  $('nowSub').textContent = bits.length ? bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.' : '';
+  $('nowCards').innerHTML = parts.map(partCard).join('');
+  hNow.render(res, win, `${win.length} uur, van ${String(win[0].hour).padStart(2, '0')}:00 tot morgenochtend 06:00. Tik op een uur of rij voor details.`);
 }
 
 // ---------- LAAG 2: pluim ----------
@@ -881,12 +1000,14 @@ async function renderWinter() {
 
 // ---------- tabs & verversen ----------
 function showView(v) {
+  if (!['now', '5', '14', '90'].includes(v)) v = 'now';
   state.view = v; store.set('ww.view', v);
-  for (const k of ['5', '14', '90']) {
+  for (const k of ['now', '5', '14', '90']) {
     $(`tab-${k}`).setAttribute('aria-selected', v === k);
     $(`view-${k}`).hidden = v !== k;
   }
   if (v !== '14') stopRunFilm();
+  if (v === 'now') radarResize();
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
 }
@@ -901,8 +1022,9 @@ async function refresh() {
     fetchHourly(state.loc).catch(() => null),
   ]);
   renderDay5(det, ens?.dates);
-  hstate.sel = 0;
-  renderHourly(hourly);
+  hNow.reset(); h5.reset();
+  renderNow(hourly);
+  h5.render(hourly, hourly?.steps);
   radarRefresh();
   if (state.view === '14') renderDay14();
   if (state.view === '90') renderWinter();
@@ -912,6 +1034,7 @@ async function refresh() {
 
 function init() {
   $('placeName').textContent = state.loc.name;
+  $('tab-now').addEventListener('click', () => showView('now'));
   $('tab-5').addEventListener('click', () => showView('5'));
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
@@ -920,7 +1043,8 @@ function init() {
     state.model = b.dataset.k; renderDay14();
   });
   initPlaces();
-  initHourly();
+  hNow.init(); h5.init();
+  $('ribbon').addEventListener('click', (e) => { const li = e.target.closest('.day'); if (li?.dataset.date) h5.scrollToDate(li.dataset.date); });
   initRunFilm({
     box: $('film'), svg: $('filmSvg'), controls: $('filmCtl'), play: $('filmPlay'), prev: $('filmPrev'), next: $('filmNext'),
     slider: $('filmSlider'), run: $('filmRun'), pos: $('filmPos'), text: $('filmText'), trend: $('filmTrend'),
