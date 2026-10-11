@@ -10,7 +10,7 @@ import {
 import { LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint } from '../lib/longrange.js';
 
 const ROOT = new URL('../', import.meta.url);
-const KEEP_RUNS = 28; // ~7 dagen bij 4 runs per dag
+const KEEP_RUNS = 40; // ~10 dagen bij 4 runs per dag (voor de run-film)
 const ENS_API = 'https://ensemble-api.open-meteo.com/v1/ensemble';
 const TZ = 'Europe/Amsterdam';
 

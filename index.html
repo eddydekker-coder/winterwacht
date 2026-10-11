@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -112,6 +112,29 @@
         <figure class="plume" id="plumeT850"></figure>
       </details>
 
+      <section class="film" id="film" aria-labelledby="filmTitle">
+        <h2 class="h2" id="filmTitle">Run-film</h2>
+        <p class="note">De laatste runs rustig achter elkaar. <span class="delta w">Rood</span> waar de pluim warmer wordt dan de vorige run, <span class="delta c">blauw</span> waar hij kouder wordt. Gestippeld: de vorige run en de controlerun.</p>
+        <div class="filmbar">
+          <div class="modelpick small" role="radiogroup" aria-label="Grootheid" id="filmMode">
+            <button role="radio" aria-checked="true" data-mode="t2">Max / min</button>
+            <button role="radio" aria-checked="false" data-mode="t850">T850</button>
+          </div>
+          <label class="fsel">Runs <select id="filmCount"><option value="8">8</option><option value="12" selected>12</option><option value="20">20</option><option value="40">alle</option></select></label>
+          <label class="fsel">Tempo <select id="filmSpeed"><option value="rustig">rustig</option><option value="normaal" selected>normaal</option><option value="vlot">vlot</option></select></label>
+        </div>
+        <p class="filmrun"><b id="filmRun"></b><span id="filmPos"></span></p>
+        <figure class="trend filmsvg" id="filmSvg"></figure>
+        <div class="rctl" id="filmCtl">
+          <button type="button" id="filmPlay" class="rbtn" aria-pressed="false"></button>
+          <button type="button" id="filmPrev" class="rbtn" aria-label="Vorige run"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <input type="range" id="filmSlider" min="0" max="1" step="1" value="1" aria-label="Kies run">
+          <button type="button" id="filmNext" class="rbtn" aria-label="Volgende run"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <p class="filmtext" id="filmText" aria-live="polite"></p>
+        <div class="filmtrend" id="filmTrend"></div>
+      </section>
+
       <h2 class="h2">Per datum, deze run tegen de vorige</h2>
       <p class="note" id="runNote"></p>
       <ol class="runlist" id="runList"></ol>
@@ -167,6 +190,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </body>
 </html>

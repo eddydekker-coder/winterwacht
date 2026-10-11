@@ -304,3 +304,25 @@ dialog::backdrop { background: rgba(5, 15, 25, 0.55); }
 .rkeydwd { max-width: 100%; overflow-x: auto; }
 .rkeydwd img { display: block; max-height: 64px; max-width: 100%; object-fit: contain; object-position: left; }
 [hidden] { display: none !important; }
+
+/* ---------- run-film ---------- */
+.film { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 4px; }
+.film .h2 { margin-top: 14px; }
+.filmbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 4px 0 6px; }
+.modelpick.small { padding: 0; }
+.modelpick.small button { padding: 6px 11px; font-size: 0.8rem; }
+.fsel { font-size: 0.8rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
+.fsel select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
+.filmrun { margin: 6px 0 0; display: flex; align-items: baseline; gap: 10px; }
+.filmrun b { font: 600 1.35rem/1 var(--font-num); }
+.filmrun span { font-size: 0.78rem; color: var(--ink-soft); }
+.filmsvg svg .fnum { font-family: var(--font-num); }
+.filmtext { font-size: 0.88rem; margin: 10px 0 4px; min-height: 2.6em; }
+.filmtext b.c { color: var(--colder); }
+.filmtext b.w { color: var(--warmer); }
+.filmtrend { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--panel); margin-top: 8px; }
+.filmtrend:empty { display: none; }
+.filmtrend svg { flex: none; }
+.filmtrend p { margin: 0; font-size: 0.85rem; }
+.filmtrend p span { display: block; color: var(--ink-soft); font-size: 0.76rem; }
+.modelpick button:disabled { opacity: .35; cursor: not-allowed; }

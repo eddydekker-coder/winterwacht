@@ -2,14 +2,15 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=10';
+} from './lib/stats.js?v=11';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=10';
+} from './lib/longrange.js?v=11';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass,
-} from './lib/hourly.js?v=10';
-import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=10';
+} from './lib/hourly.js?v=11';
+import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=11';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=11';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -602,6 +603,8 @@ async function renderDay14() {
       }).join('');
   }
   $('trend').innerHTML = trendSVG(runs);
+  state.filmRuns = { runs, model: model.label, today: new Date().toLocaleDateString('sv-SE', { timeZone: TZ }) };
+  setRunFilm(runs, state.filmRuns);
   renderSignals();
 }
 
@@ -883,6 +886,7 @@ function showView(v) {
     $(`tab-${k}`).setAttribute('aria-selected', v === k);
     $(`view-${k}`).hidden = v !== k;
   }
+  if (v !== '14') stopRunFilm();
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
 }
@@ -917,6 +921,11 @@ function init() {
   });
   initPlaces();
   initHourly();
+  initRunFilm({
+    box: $('film'), svg: $('filmSvg'), controls: $('filmCtl'), play: $('filmPlay'), prev: $('filmPrev'), next: $('filmNext'),
+    slider: $('filmSlider'), run: $('filmRun'), pos: $('filmPos'), text: $('filmText'), trend: $('filmTrend'),
+    modes: $('filmMode'), speed: $('filmSpeed'), count: $('filmCount'),
+  }, () => state.filmRuns);
   initRadar({
     map: $('radarMap'), play: $('radarPlay'), prev: $('radarPrev'), next: $('radarNext'), slider: $('radarSlider'),
     time: $('radarTime'), ago: $('radarAgo'), center: $('radarCenter'), status: $('radarStatus'),
