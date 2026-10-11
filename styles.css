@@ -381,3 +381,22 @@ dialog::backdrop { background: rgba(5, 15, 25, 0.55); }
 .htable .dim { color: var(--ink-soft); }
 .warr { display: inline-block; width: 10px; height: 12px; background: currentColor; clip-path: polygon(50% 0, 100% 100%, 50% 78%, 0 100%); transform: rotate(var(--r)); }
 @media (min-width: 560px) { .htablewrap { margin-inline: 0; } }
+
+/* uitklapbaar uur-voor-uur op Nu */
+.hfold { border-top: 1px solid var(--line); margin-top: 22px; }
+.hfold > summary { padding: 14px 0 12px 1.4em; position: relative; }
+.hfold > summary::before { position: absolute; left: 0; top: 18px; font: 600 1.45rem/1 var(--font-num); }
+.hfold > summary span { padding-left: 0; }
+.hfold > summary .h2 { display: block; margin: 0; color: var(--ink); font: 600 1.45rem/1.15 var(--font-num); }
+.hfold > summary .hourhead { display: block; font: 400 0.85rem/1.35 var(--font-ui); color: var(--ink-soft); padding: 0; margin: 4px 0 0; }
+.hfold { padding-top: 0; }
+.hfold > summary::before { top: 15px; }
+.hfold[open] > summary { padding-bottom: 8px; }
+
+/* regenanimatie (tab Nu) */
+#rainfx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0; }
+body.raining #snow { display: none; }
+body.raining .ncard { background: rgba(20, 30, 44, 0.30); }
+body.raining .ncard.night { background: rgba(10, 18, 30, 0.42); }
+body.raining .tabs button, body.raining .stamp, body.raining main { text-shadow: 0 1px 3px rgba(20, 28, 40, 0.35); }
+body.raining .tabs button[aria-selected='false'] { color: rgba(242, 245, 246, 0.78); }

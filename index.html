@@ -17,9 +17,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
+  <canvas id="rainfx" aria-hidden="true"></canvas>
   <canvas id="snow" aria-hidden="true"></canvas>
 
   <header class="top">
@@ -47,9 +48,8 @@
       </div>
       <div class="ncards" id="nowCards"></div>
 
-      <section class="hourly" id="hn" aria-labelledby="hnTitle">
-        <h2 class="h2" id="hnTitle">Uur voor uur tot morgenochtend</h2>
-        <p class="hourhead" id="hnHead">De uurverwachting wordt opgehaald…</p>
+      <details class="hourly hfold" id="hn">
+        <summary><span class="h2">Uur voor uur tot morgenochtend</span><span class="hourhead" id="hnHead">De uurverwachting wordt opgehaald…</span></summary>
         <div class="hwrap">
           <div class="hscroll" id="hnScroll" tabindex="0" aria-label="Uurverwachting, veeg horizontaal"></div>
           <div class="hlegend" aria-hidden="true">
@@ -65,7 +65,7 @@
         <p class="hkey"><span class="k-t"></span>temperatuur <span class="k-f"></span>gevoel <span class="k-r"></span>regen <span class="k-n"></span>natte sneeuw <span class="k-s"></span>sneeuw <span class="k-i"></span>ijzel</p>
         <div class="tablewrap htablewrap" id="hnTable"></div>
         <p class="note" id="hnNote"></p>
-      </section>
+      </details>
 
       <section class="radar" id="radar" aria-labelledby="radarTitle">
         <h2 class="h2" id="radarTitle">Buienradar, afgelopen uur</h2>
@@ -222,6 +222,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=12"></script>
+  <script type="module" src="app.js?v=13"></script>
 </body>
 </html>

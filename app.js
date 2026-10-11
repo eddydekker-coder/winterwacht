@@ -2,15 +2,17 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=12';
+} from './lib/stats.js?v=13';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=12';
+} from './lib/longrange.js?v=13';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=12';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=12';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=12';
+} from './lib/hourly.js?v=13';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=13';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=13';
+import { outlook } from './lib/outlook.js?v=13';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=13';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -44,14 +46,17 @@ async function getJSON(url) {
 }
 
 async function fetchDeterministic(loc) {
-  const daily = 'temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code';
+  const base = 'temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code';
+  const sets = [`${base},precipitation_hours,wind_gusts_10m_max`, base];
   const out = {};
   await Promise.all(DETERMINISTIC.map(async (m) => {
     for (const id of m.ids) {
-      try {
-        const d = await getJSON(`${API}?latitude=${loc.lat}&longitude=${loc.lon}&daily=${daily}&models=${id}&forecast_days=6&timezone=${encodeURIComponent(TZ)}`);
-        out[m.key] = d.daily; return;
-      } catch (e) { if (e.status !== 400) return; }
+      for (const daily of sets) {
+        try {
+          const d = await getJSON(`${API}?latitude=${loc.lat}&longitude=${loc.lon}&daily=${daily}&models=${id}&forecast_days=6&timezone=${encodeURIComponent(TZ)}`);
+          out[m.key] = d.daily; return;
+        } catch (e) { if (e.status !== 400) return; }
+      }
     }
   }));
   return out;
@@ -196,38 +201,17 @@ function blendDays(det, ens) {
       date, tx: tx.v, tn: tn.v, src: tx.k,
       snow: Math.round((pick('snowfall_sum').v ?? 0) * 10) / 10,
       code: pick('weather_code').v,
+      rain: pick('precipitation_sum').v, phours: pick('precipitation_hours').v, gust: pick('wind_gusts_10m_max').v,
       pSnow: e.pSnow, pFrost: e.pFrost, pIce: e.pIce,
     };
   });
-}
-
-function verdict(days) {
-  const mode = seasonMode(monthOf(days[0].date));
-  const snowDay = days.find((d) => d.snow >= 0.3 || (d.pSnow ?? 0) >= 40);
-  const ice = days.find((d) => d.tx != null && d.tx < 0);
-  const frost = days.filter((d) => d.tn != null && d.tn < 0);
-  const first = days[0], last = days[days.length - 1];
-  const dTx = last.tx - first.tx;
-  let h;
-  if (snowDay) { const dag = dLong(snowDay.date).split(' ')[0]; h = snowDay.snow >= 0.3 ? `${dag[0].toUpperCase() + dag.slice(1)} sneeuw in ${state.loc.name}: ${nl(snowDay.snow)} cm` : `Kans op sneeuw op ${dag}`; }
-  else if (ice) h = `IJsdag in zicht op ${dLong(ice.date).split(' ')[0]}`;
-  else if (frost.length) h = mode === 'winter' ? `${frost.length} ${frost.length === 1 ? 'nacht' : 'nachten'} met vorst` : `Nachtvorst op ${dLong(frost[0].date).split(' ')[0]}`;
-  else if (dTx <= -3) h = 'Ja, het wordt frisser';
-  else if (dTx >= 3) h = 'Nee, het wordt zachter';
-  else h = 'Weinig verandering de komende dagen';
-
-  const coldest = Math.min(...days.map((d) => d.tn ?? 99));
-  const anom = days.reduce((s, d) => { const m = monthOf(d.date) - 1; return s + ((d.tx - NORMAL_TX[m]) + (d.tn - NORMAL_TN[m])) / 2; }, 0) / days.length;
-  const anomTxt = Math.abs(anom) < 0.7 ? 'rond normaal voor de tijd van het jaar' : `${Math.abs(anom).toFixed(1).replace('.', ',')}° ${anom < 0 ? 'kouder' : 'warmer'} dan normaal`;
-  const sub = `Overdag van ${deg(first.tx)} naar ${deg(last.tx)}, koudste nacht ${deg(coldest)}. Gemiddeld ${anomTxt}.`;
-  return { h, sub };
 }
 
 function renderDay5(det, ens) {
   const days = blendDays(det, ens);
   if (!days.length) { $('verdict').textContent = 'Geen verwachting beschikbaar'; return; }
   const mode = seasonMode(monthOf(days[0].date));
-  const v = verdict(days);
+  const v = outlook(days, (d) => { const m = monthOf(d) - 1; return { tx: NORMAL_TX[m], tn: NORMAL_TN[m] }; });
   $('verdict').textContent = v.h;
   $('verdictSub').textContent = v.sub;
   const score = winterScore(days.filter((d) => d.tx != null && d.tn != null));
@@ -576,7 +560,12 @@ function renderNow(res) {
   });
   $('nowSub').textContent = bits.length ? bits.join(', ').replace(/^./, (c) => c.toUpperCase()) + '.' : '';
   $('nowCards').innerHTML = parts.map(partCard).join('');
-  hNow.render(res, win, `${win.length} uur, van ${String(win[0].hour).padStart(2, '0')}:00 tot morgenochtend 06:00. Tik op een uur of rij voor details.`);
+  // Regenanimatie bij een regenachtige dag. Voorbeeld forceren: voeg ?regen (of ?regen=1.4) toe aan het adres.
+  const r = rainFromSteps(win);
+  const force = new URLSearchParams(location.search).get('regen');
+  const intensity = force !== null ? (Number(force) || 0.8) : r.intensity;
+  setRain(intensity, r.wind, r.dir);
+  hNow.render(res, win, `${win.length} uur, van ${String(win[0].hour).padStart(2, '0')}:00 tot morgenochtend 06:00, met alle details per uur.`);
 }
 
 // ---------- LAAG 2: pluim ----------
@@ -1008,6 +997,7 @@ function showView(v) {
   }
   if (v !== '14') stopRunFilm();
   if (v === 'now') radarResize();
+  rainVisible(v === 'now');
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
 }
@@ -1044,6 +1034,7 @@ function init() {
   });
   initPlaces();
   hNow.init(); h5.init();
+  initRain($('rainfx'));
   $('ribbon').addEventListener('click', (e) => { const li = e.target.closest('.day'); if (li?.dataset.date) h5.scrollToDate(li.dataset.date); });
   initRunFilm({
     box: $('film'), svg: $('filmSvg'), controls: $('filmCtl'), play: $('filmPlay'), prev: $('filmPrev'), next: $('filmNext'),
