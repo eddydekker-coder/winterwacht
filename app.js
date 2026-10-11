@@ -2,14 +2,14 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=9';
+} from './lib/stats.js?v=10';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=9';
+} from './lib/longrange.js?v=10';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass,
-} from './lib/hourly.js?v=9';
-import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=9';
+} from './lib/hourly.js?v=10';
+import { initRadar, radarLocation, radarRefresh } from './lib/radar.js?v=10';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
