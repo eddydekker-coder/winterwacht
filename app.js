@@ -2,17 +2,17 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=13';
+} from './lib/stats.js?v=14';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=13';
+} from './lib/longrange.js?v=14';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=13';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=13';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=13';
-import { outlook } from './lib/outlook.js?v=13';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=13';
+} from './lib/hourly.js?v=14';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=14';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=14';
+import { outlook } from './lib/outlook.js?v=14';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=14';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
