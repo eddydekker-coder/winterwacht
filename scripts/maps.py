@@ -240,7 +240,7 @@ def run_gfs():
 
 # ---------------------------------------------------------------- ECMWF
 def run_ec():
-    from ecmwf_opendata import Client
+    from ecmwf.opendata import Client
     client = Client(source='ecmwf', model='ifs', resol='0p25')
     run = client.latest(type='fc', stream='oper', step=max(LEADS), param='msl', levtype='sfc')
     stamp = run.strftime('%Y-%m-%dT%H:%M:00Z')
