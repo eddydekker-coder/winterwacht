@@ -1,0 +1,15 @@
+{
+ "ec": {
+  "ok": false,
+  "run": null,
+  "error": "ModuleNotFoundError: No module named 'ecmwf_opendata'",
+  "where": [
+   "  File \"/home/runner/work/winterwacht/winterwacht/scripts/maps.py\", line 243, in run_ec",
+   "    from ecmwf_opendata import Client"
+  ]
+ },
+ "gfs": {
+  "ok": true,
+  "run": "2026-10-15T00:00:00Z"
+ }
+}
