@@ -353,7 +353,8 @@ def run_model(key, label, latest, download, decoder):
             (sections if full else prev)[str(lead)] = f
     first = sections[str(LEADS[0])]
     if not valid(first):
-        raise RuntimeError('velden zien er onlogisch uit; niet opgeslagen')
+        stats = {k: [round(float(np.nanmin(v)), 1), round(float(np.nanmax(v)), 1)] for k, v in first.items()}
+        raise RuntimeError(f'velden zien er onlogisch uit; niet opgeslagen: {stats}')
     payload = {
         'v': VERSION, 'model': key, 'label': label, 'run': stamp, 'made': iso(dt.datetime.utcnow()),
         'grid': {'lon0': LON0, 'lat0': LAT_N, 'd': 1, 'nx': NX, 'ny': NY},
@@ -406,7 +407,7 @@ if __name__ == '__main__':
         except Exception as e:  # een model mag falen zonder de andere te blokkeren
             failures += 1
             tb = traceback.format_exc().strip().split('\n')
-            status[key] = {'ok': False, 'run': read_existing(key), 'error': f'{type(e).__name__}: {e}'[:400], 'where': tb[-3:-1]}
+            status[key] = {'ok': False, 'run': read_existing(key), 'error': f'{type(e).__name__}: {e}'[:900], 'where': tb[-3:-1]}
             log(f'{key} mislukt: {type(e).__name__}: {e}')
     write_status(status)
     sys.exit(1 if failures == len(models) else 0)
