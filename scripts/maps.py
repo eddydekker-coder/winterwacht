@@ -21,6 +21,7 @@ import re
 import sys
 import tempfile
 import time
+import traceback
 import urllib.error
 import urllib.request
 
@@ -288,12 +289,31 @@ def run_ec():
     return True
 
 
+def write_status(status):
+    """Korte status per model (zonder tijdstempel, zodat het alleen bij een wijziging een commit geeft)."""
+    path = os.path.join(OUT, 'status.json')
+    try:
+        with open(path) as f:
+            if json.load(f) == status:
+                return
+    except Exception:
+        pass
+    os.makedirs(OUT, exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump(status, f, indent=1, ensure_ascii=False)
+
+
 if __name__ == '__main__':
     failures = 0
-    for fn in (run_ec, run_gfs):
+    status = {}
+    for key, fn in (('ec', run_ec), ('gfs', run_gfs)):
         try:
             fn()
+            status[key] = {'ok': True, 'run': read_existing(key)}
         except Exception as e:  # een model mag falen zonder het andere te blokkeren
             failures += 1
-            log(f'{fn.__name__} mislukt: {type(e).__name__}: {e}')
+            tb = traceback.format_exc().strip().split('\n')
+            status[key] = {'ok': False, 'run': read_existing(key), 'error': f'{type(e).__name__}: {e}'[:400], 'where': tb[-3:-1]}
+            log(f'{key} mislukt: {type(e).__name__}: {e}')
+    write_status(status)
     sys.exit(1 if failures == 2 else 0)
