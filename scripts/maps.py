@@ -302,7 +302,7 @@ def read_grib(path):
     return out
 
 
-def ec_decode(paths, step, full):
+def ec_decode(paths, step, full, tp_scale=1000.0):
     pl = read_grib(paths['pl'])
     sfc = read_grib(paths['sfc'])
     f = {'z500': to_grid(pl[('gh', 500, step)]), 't850': to_grid(pl[('t', 850, step)]) - 273.15, 'msl': to_grid(sfc[('msl', 0, step)]) / 100.0}
@@ -312,7 +312,7 @@ def ec_decode(paths, step, full):
         f['v10'] = to_grid(sfc[('10v', 0, step)])
         tp = read_grib(paths['tp'])
         now, before = tp[('tp', 0, step)], tp[('tp', 0, step - 6)]
-        f['pr6'] = np.clip(to_grid((now[0], now[1], (now[2] - before[2]) * 1000.0), box=2), 0, None)  # m -> mm
+        f['pr6'] = np.clip(to_grid((now[0], now[1], (now[2] - before[2]) * tp_scale), box=2), 0, None)  # IFS: m -> mm
     return f
 
 
@@ -378,7 +378,7 @@ def run_gfs():
 def make_ec(model, key, label):
     def dl(run, step, full, tmp):
         return ec_download(model, run, step, full, tmp)
-    return lambda: run_model(key, label, lambda: ec_latest(model), dl, lambda paths, step, full: ec_decode(paths, step, full))
+    return lambda: run_model(key, label, lambda: ec_latest(model), dl, lambda paths, step, full: ec_decode(paths, step, full, 1.0 if 'aifs' in model else 1000.0))  # AIFS levert tp al in mm
 
 
 def write_status(status):
