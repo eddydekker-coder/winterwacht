@@ -1044,7 +1044,7 @@ function init() {
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
   $('tab-maps').addEventListener('click', () => showView('maps'));
-  maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet') }, () => state.loc, plumeFor);
+  maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet'), cmp: $('mapCmp') }, () => state.loc, plumeFor);
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     state.model = b.dataset.k; renderDay14();

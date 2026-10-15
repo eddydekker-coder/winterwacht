@@ -433,3 +433,11 @@ button.term:hover, button.term:focus-visible { text-decoration-style: solid; col
 #termSheet .termBody p { margin: 0; }
 #termSheet button.term { color: #285c8a; }
 #termSheet .termTitle { font: 600 1.25rem var(--font-num); }
+.mapcmp { margin-top: 14px; }
+.cmpverdict { margin: 4px 0 8px; font-size: 0.9rem; line-height: 1.45; max-width: 66ch; }
+.cmpwrap { overflow-x: auto; }
+.cmptab { border-collapse: collapse; font-size: 0.84rem; min-width: 100%; }
+.cmptab th, .cmptab td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cmptab thead th { font: 600 0.74rem var(--font-ui); color: var(--ink-soft); }
+.cmptab tbody th { text-align: left; font-weight: 700; }
+.cmptab small { font-weight: 400; color: var(--ink-soft); }
