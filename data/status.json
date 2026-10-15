@@ -1,11 +1,11 @@
 {
- "checked": "2026-10-15T09:07:18.498Z",
+ "checked": "2026-10-15T11:31:26.483Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
    "run": "2026-10-14T18:00Z",
    "estimated": false,
-   "fetched": "2026-10-15T07:34:55.228Z"
+   "fetched": "2026-10-15T11:31:27.210Z"
   },
   "ifs": {
    "id": "ecmwf_ifs025",
@@ -29,7 +29,7 @@
    "id": "icon_seamless_eps",
    "run": "2026-10-15T00:00Z",
    "estimated": true,
-   "fetched": "2026-10-15T07:34:57.632Z"
+   "fetched": "2026-10-15T11:31:28.410Z"
   }
  },
  "long": {
