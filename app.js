@@ -2,17 +2,18 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=15';
+} from './lib/stats.js?v=16';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=15';
+} from './lib/longrange.js?v=16';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=15';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=15';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=15';
-import { outlook } from './lib/outlook.js?v=15';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=15';
+} from './lib/hourly.js?v=16';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=16';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=16';
+import { outlook } from './lib/outlook.js?v=16';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=16';
+import { initMaps } from './lib/maps.js?v=16';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -790,6 +791,7 @@ function setLocation(loc) {
   state.loc = loc;
   radarLocation(loc);
   $('placeName').textContent = loc.name;
+  maps?.relocate();
   refresh();
 }
 function initPlaces() {
@@ -988,10 +990,11 @@ async function renderWinter() {
 }
 
 // ---------- tabs & verversen ----------
+let maps = null;
 function showView(v) {
-  if (!['now', '5', '14', '90'].includes(v)) v = 'now';
+  if (!['now', '5', '14', '90', 'maps'].includes(v)) v = 'now';
   state.view = v; store.set('ww.view', v);
-  for (const k of ['now', '5', '14', '90']) {
+  for (const k of ['now', '5', '14', '90', 'maps']) {
     $(`tab-${k}`).setAttribute('aria-selected', v === k);
     $(`view-${k}`).hidden = v !== k;
   }
@@ -1000,6 +1003,7 @@ function showView(v) {
   rainVisible(v === 'now');
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
+  maps?.show(v === 'maps');
 }
 
 async function refresh() {
@@ -1018,6 +1022,7 @@ async function refresh() {
   radarRefresh();
   if (state.view === '14') renderDay14();
   if (state.view === '90') renderWinter();
+  maps?.refresh();
   $('stamp').textContent = `Bijgewerkt ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
   state.lastRefresh = Date.now();
 }
@@ -1028,6 +1033,8 @@ function init() {
   $('tab-5').addEventListener('click', () => showView('5'));
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
+  $('tab-maps').addEventListener('click', () => showView('maps'));
+  maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus') }, () => state.loc);
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     state.model = b.dataset.k; renderDay14();

@@ -24,6 +24,15 @@ jobs:
           node-version: '22'
       - name: Runs ophalen en samenvatten
         run: node scripts/update.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Weerkaarten ophalen (ECMWF en GFS)
+        # Mag falen zonder de rest van de update te blokkeren; de app toont dan de vorige kaartrun.
+        continue-on-error: true
+        run: |
+          pip install --quiet numpy eccodes ecmwf-opendata
+          python scripts/maps.py
       - name: Opslaan als er iets nieuws is
         run: |
           if [ -n "$(git status --porcelain data)" ]; then

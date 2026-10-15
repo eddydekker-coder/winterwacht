@@ -131,7 +131,7 @@ td .num { font: 500 1.05rem var(--font-num); }
   flex: none; padding: 7px 12px; border-radius: 999px; cursor: pointer;
   border: 1px solid var(--line); background: transparent; font-weight: 700; font-size: 0.85rem;
 }
-.modelpick button[aria-checked='true'] { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }
+.modelpick button[aria-checked='true'], .modelpick button[aria-selected='true'] { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }
 .plumehead { padding-top: 10px; }
 .plumehead h2, .h2 { font: 600 1.45rem/1.15 var(--font-num); margin: 18px 0 4px; }
 .plumehead p { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
@@ -327,8 +327,10 @@ dialog::backdrop { background: rgba(5, 15, 25, 0.55); }
 .filmtrend p span { display: block; color: var(--ink-soft); font-size: 0.76rem; }
 .modelpick button:disabled { opacity: .35; cursor: not-allowed; }
 
-/* ---------- tabs: vier stuks ---------- */
-.tabs button { font-size: 0.9rem; white-space: nowrap; padding-inline: 2px; }
+/* ---------- tabs: vijf stuks ---------- */
+.tabs { overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { font-size: 0.84rem; white-space: nowrap; padding-inline: 2px; }
 
 /* ---------- tab Nu ---------- */
 .nowtop { padding: 18px 0 6px; }
@@ -400,3 +402,22 @@ body.raining .ncard { background: rgba(20, 30, 44, 0.30); }
 body.raining .ncard.night { background: rgba(10, 18, 30, 0.42); }
 body.raining .tabs button, body.raining .stamp, body.raining main { text-shadow: 0 1px 3px rgba(20, 28, 40, 0.35); }
 body.raining .tabs button[aria-selected='false'] { color: rgba(242, 245, 246, 0.78); }
+
+
+/* ---------- tab Weerkaarten ---------- */
+.maprun { margin: 6px 0 2px; color: var(--ink-soft); font-size: 0.84rem; }
+.maprun b { color: var(--ink); }
+#mapLeads { padding: 8px 0 6px; }
+#mapLeads button { display: flex; flex-direction: column; align-items: center; line-height: 1.15; flex: none; padding: 6px 11px; }
+#mapLeads button small { font-size: 0.68rem; opacity: 0.8; }
+.mapcard { margin-top: 18px; }
+.mapcard .h2 { margin-top: 6px; }
+.mapsub { margin: 2px 0 8px; color: var(--ink-soft); font-size: 0.82rem; max-width: 60ch; }
+.mapsub span { white-space: nowrap; }
+.mapcv { display: block; width: 100%; height: auto; border-radius: 10px; background: #16222c; touch-action: pan-y; }
+.mapread { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.mapread li { background: var(--panel); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; line-height: 1.45; max-width: 66ch; }
+.mapread li b { display: block; font: 600 0.78rem/1.2 var(--font-ui); text-transform: uppercase; letter-spacing: 0.06em; color: var(--frost); margin-bottom: 3px; }
+.mapguide { margin-top: 8px; border-top: 1px solid var(--line); }
+.mapguide summary { cursor: pointer; padding: 10px 0; font-weight: 700; font-size: 0.88rem; color: var(--ink-soft); }
+.mapguide ol { margin: 0 0 8px; padding-left: 1.2em; font-size: 0.86rem; color: var(--ink-soft); display: grid; gap: 4px; max-width: 62ch; }

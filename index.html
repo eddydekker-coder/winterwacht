@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -36,6 +36,7 @@
     <button role="tab" id="tab-5" aria-selected="false" aria-controls="view-5">5 dagen</button>
     <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">Lange termijn</button>
     <button role="tab" id="tab-90" aria-selected="false" aria-controls="view-90">Winter</button>
+    <button role="tab" id="tab-maps" aria-selected="false" aria-controls="view-maps">Weerkaarten</button>
   </nav>
 
   <main>
@@ -203,6 +204,23 @@
 
       <p class="note">Afwijkingen zijn ten opzichte van de eigen klimatologie van het model (de gemiddelde temperatuur voor die periode). Kans kouder = aandeel van de 51 leden dat meer dan 0,5° onder normaal uitkomt. AIFS heeft nog geen publieke lange-termijnversie, daarom is ECMWF hier de hoofdlijn.</p>
     </section>
+
+    <!-- TAB WEERKAARTEN -->
+    <section id="view-maps" role="tabpanel" aria-labelledby="tab-maps" hidden>
+      <div class="verdict">
+        <h1>Weerkaarten</h1>
+        <p>De nieuwste runs van ECMWF en GFS, met bij elke kaart drie regels uitleg en wat het betekent voor je locatie.</p>
+      </div>
+      <div class="modelpick" role="tablist" aria-label="Weermodel" id="mapModel">
+        <button role="tab" data-m="ec" aria-selected="true">ECMWF</button>
+        <button role="tab" data-m="gfs" aria-selected="false">GFS</button>
+      </div>
+      <p class="maprun" id="mapRun"></p>
+      <div class="modelpick small" role="radiogroup" aria-label="Verwachtingsmoment" id="mapLeads"></div>
+      <p class="note err" id="mapStatus" aria-live="polite"></p>
+      <div id="mapCards"></div>
+      <p class="note">Kaarten zijn getekend uit de open modeldata van ECMWF (IFS, CC BY 4.0) en NOAA (GFS), op een raster van 1 graad. Dagmaxima en neerslagtype zijn vuistregels uit T850 en luchtdruk en vervangen geen lokale verwachting. Bij ECMWF en GFS zie je dezelfde kaartindeling, zodat je ze direct naast elkaar kunt leggen.</p>
+    </section>
   </main>
 
   <footer class="foot" id="foot"></footer>
@@ -222,6 +240,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=15"></script>
+  <script type="module" src="app.js?v=16"></script>
 </body>
 </html>

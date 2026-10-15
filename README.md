@@ -5,9 +5,10 @@ Persoonlijke winter-app voor Ommen (of waar je bent).
 - **5 dagen**: KNMI HARMONIE voor de eerste drie dagen, daarna ECMWF AIFS. Sneeuw- en vorstkansen komen uit het AIFS-ensemble.
 - **14 dagen**: ensemble-pluimen (AIFS, IFS, GEFS, GEM, ICON) met T2m en T850. Per datum zie je of de nieuwste run kouder (blauw) of warmer (rood) is dan de vorige. Daarnaast een trend van dag 8–14 over de laatste runs en grootschalige signalen: NAO-benadering, oostenwind en blokkade boven Scandinavië.
 
+- **Weerkaarten**: de nieuwste run van ECMWF (IFS) en GFS, in aparte tabs. Per verwachtingsmoment (+24 tot +240 uur) twee kaarten: luchtmassa en stroming (T850 met hoogtelijnen van 500 hPa) en druk met neerslag (isobaren en 6-uursneerslag, sneeuw in paars). Onder elke kaart staan drie regels uitleg: wat je ziet, hoe je het leest en wat het betekent voor je locatie. Die uitleg wordt in de app uit de modelvelden afgeleid (windrichting en -kracht uit de isobaren, trog of rug, luchtmassa stroomopwaarts). De kaarten zelf worden in de browser getekend uit `data/maps/ec.json` en `data/maps/gfs.json`.
 - **Winter**: de lange termijn volgens ECMWF. EC46 geeft weekafwijkingen tot 46 dagen vooruit en wordt dagelijks bijgewerkt. SEAS5 geeft maandafwijkingen tot 7 maanden vooruit en wordt maandelijks op de 5e bijgewerkt. Per maand en per week zie je de wintermeter, de kans op kouder of warmer dan normaal, het verschil met de vorige uitgave, en hoe de verwachting voor december, januari en februari zich uitgave na uitgave ontwikkelt.
 
-De app draait als gewone website op GitHub Pages. Een GitHub Action kijkt elk uur of er een nieuwe modelrun is en bewaart een samenvatting in `data/history/`. Zo ontstaat vanzelf het archief voor de run-tot-run vergelijking.
+De app draait als gewone website op GitHub Pages. Een GitHub Action kijkt elk uur of er een nieuwe modelrun is, bewaart een samenvatting in `data/history/` en haalt (met Python) de kaartvelden van ECMWF en GFS op. Zo ontstaat vanzelf het archief voor de run-tot-run vergelijking.
 
 ## Eenmalig instellen (± 10 minuten)
 
@@ -35,6 +36,7 @@ Een extra vaste locatie met archief toevoegen? Voeg een regel toe in `config.jso
 ## Goed om te weten
 
 - Data: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0, gratis voor niet-commercieel gebruik).
+- Kaarten: ECMWF open data (IFS, CC BY 4.0) en NOAA GFS (publiek domein). De kaartuitleg gebruikt vuistregels (dagmaximum ongeveer T850 plus 4 tot 8 graden, sneeuw bij T850 onder ongeveer −4°C) en is bedoeld om kaartlezen te leren, niet als lokale verwachting.
 - Als de officiële run-tijd niet via Open-Meteo te achterhalen is, toont de app het tijdstip waarop de run binnenkwam.
 - Dagmaxima en -minima uit ensembles zijn gebaseerd op de tijdstappen van het model (bij AIFS 6-uurlijks). Daardoor worden extremen iets afgevlakt, maar de vergelijking tussen runs blijft eerlijk.
 - De NAO-benadering is indicatief: het drukverschil Azoren–IJsland ten opzichte van een afgeronde maandklimatologie. Het is niet de officiële NOAA-index.
@@ -47,6 +49,8 @@ Een extra vaste locatie met archief toevoegen? Voeg een regel toe in `config.jso
 | `lib/stats.js` | Rekenwerk: dagstatistieken, run-vergelijking, wintermeter en signalen. Gedeeld door app en Action |
 | `lib/longrange.js` | Rekenwerk voor de lange termijn (EC46 en SEAS5) |
 | `scripts/update.mjs` | Haalt nieuwe runs op en archiveert ze (draait in de Action) |
+| `scripts/maps.py` | Haalt de laatste ECMWF- en GFS-run op (open data) en bewaart kaartvelden op 1 graad in `data/maps/` |
+| `lib/maps.js`, `lib/coast.json` | Tekent de kaarten en schrijft de uitleg per kaart; kustlijnen en landsgrenzen (Natural Earth, publiek domein) |
 | `.github/workflows/update.yml` | Elk uur het updatescript draaien |
 | `config.json` | Locaties met archief |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Installeerbaar op het beginscherm, werkt ook offline |
