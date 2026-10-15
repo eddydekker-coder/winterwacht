@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -209,17 +209,21 @@
     <section id="view-maps" role="tabpanel" aria-labelledby="tab-maps" hidden>
       <div class="verdict">
         <h1>Weerkaarten</h1>
-        <p>De nieuwste runs van ECMWF en GFS, met bij elke kaart drie regels uitleg en wat het betekent voor je locatie.</p>
+        <p>De nieuwste runs van AIFS, ECMWF en GFS. Onderstreepte vaktermen zijn aanklikbaar voor uitleg.</p>
       </div>
       <div class="modelpick" role="tablist" aria-label="Weermodel" id="mapModel">
+        <button role="tab" data-m="aifs" aria-selected="false">AIFS</button>
         <button role="tab" data-m="ec" aria-selected="true">ECMWF</button>
         <button role="tab" data-m="gfs" aria-selected="false">GFS</button>
+        <button role="tab" data-m="diff" aria-selected="false">Verschil</button>
       </div>
       <p class="maprun" id="mapRun"></p>
       <div class="modelpick small" role="radiogroup" aria-label="Verwachtingsmoment" id="mapLeads"></div>
+      <div class="mapopts" id="mapOpts"></div>
+      <details class="mapguide" id="mapGuide"></details>
       <p class="note err" id="mapStatus" aria-live="polite"></p>
       <div id="mapCards"></div>
-      <p class="note">Kaarten zijn getekend uit de open modeldata van ECMWF (IFS, CC BY 4.0) en NOAA (GFS), op een raster van 1 graad. Dagmaxima en neerslagtype zijn vuistregels uit T850 en luchtdruk en vervangen geen lokale verwachting. Bij ECMWF en GFS zie je dezelfde kaartindeling, zodat je ze direct naast elkaar kunt leggen.</p>
+      <p class="note">Kaarten zijn getekend uit de open modeldata van ECMWF (IFS en AIFS, CC BY 4.0) en NOAA (GFS), op een <button type="button" class="term" data-t="raster">raster van 1 graad</button>. De temperatuur, wind en neerslag in de uitleg komen uit hetzelfde model en dezelfde run als de kaart (een momentopname). Voor dagextremen gelden de pluimen en uurwaarden in de andere tabbladen.</p>
     </section>
   </main>
 
@@ -240,6 +244,14 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=16"></script>
+  <dialog id="termSheet" aria-labelledby="termTitle">
+    <form method="dialog" class="sheet">
+      <h2 id="termTitle" class="termTitle"></h2>
+      <div class="termBody"></div>
+      <button value="close" class="close">Sluiten</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js?v=17"></script>
 </body>
 </html>

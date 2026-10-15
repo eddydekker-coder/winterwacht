@@ -16,7 +16,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,12 +27,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Weerkaarten ophalen (ECMWF en GFS)
+      - name: Weerkaarten ophalen (AIFS, ECMWF en GFS)
         # Mag falen zonder de rest van de update te blokkeren; de app toont dan de vorige kaartrun.
+        # De kaartvelden staan op de aparte tak maps-data (steeds 1 commit), zodat de hoofdtak niet groeit.
         continue-on-error: true
         run: |
+          git clone --quiet --depth 1 --branch maps-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" maps-out || mkdir -p maps-out
           pip install --quiet numpy eccodes ecmwf-opendata
-          python scripts/maps.py
+          MAPS_OUT="$PWD/maps-out" python scripts/maps.py
+      - name: Kaartvelden publiceren (tak maps-data)
+        continue-on-error: true
+        run: |
+          cd maps-out
+          if [ -f .updated ]; then
+            rm -f .updated
+            rm -rf .git
+            git init --quiet -b maps-data
+            git config user.name "winterwacht-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A
+            git commit --quiet -m "Kaartvelden $(date -u +'%Y-%m-%d %H:%MZ')"
+            git push --quiet --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" maps-data
+          else
+            echo "Geen nieuwe kaartruns."
+          fi
       - name: Opslaan als er iets nieuws is
         run: |
           if [ -n "$(git status --porcelain data)" ]; then

@@ -2,18 +2,18 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=16';
+} from './lib/stats.js?v=17';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=16';
+} from './lib/longrange.js?v=17';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=16';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=16';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=16';
-import { outlook } from './lib/outlook.js?v=16';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=16';
-import { initMaps } from './lib/maps.js?v=16';
+} from './lib/hourly.js?v=17';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=17';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=17';
+import { outlook } from './lib/outlook.js?v=17';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=17';
+import { initMaps } from './lib/maps.js?v=17';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -990,6 +990,16 @@ async function renderWinter() {
 }
 
 // ---------- tabs & verversen ----------
+// Pluimgegevens (ensemble, dagwaarden) voor de controle in de kaartuitleg: kaartmodel -> ensemble
+function plumeFor(mapModel, day) {
+  const key = { aifs: 'aifs', ec: 'ifs', gfs: 'gefs' }[mapModel];
+  if (!key) return null;
+  const live = [`${key}@${state.loc.lat.toFixed(3)},${state.loc.lon.toFixed(3)}`].map((k) => [k, state.ens?.[k]])[0];
+  const run0 = state.history?.models?.[key]?.runs?.[0];
+  const src = live?.[1]?.v?.dates ? { dates: live[1].v.dates, run: null } : run0 ? { dates: run0.dates, run: run0.run } : null;
+  const d = src?.dates?.[day];
+  return d ? { day: d, run: src.run } : null;
+}
 let maps = null;
 function showView(v) {
   if (!['now', '5', '14', '90', 'maps'].includes(v)) v = 'now';
@@ -1034,7 +1044,7 @@ function init() {
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
   $('tab-maps').addEventListener('click', () => showView('maps'));
-  maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus') }, () => state.loc);
+  maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet') }, () => state.loc, plumeFor);
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     state.model = b.dataset.k; renderDay14();
