@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-17T14:17:34.605Z",
+ "checked": "2026-10-17T17:21:09.068Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
@@ -9,9 +9,9 @@
   },
   "ifs": {
    "id": "ecmwf_ifs025",
-   "run": "2026-10-17T00:00Z",
+   "run": "2026-10-17T06:00Z",
    "estimated": false,
-   "fetched": "2026-10-17T14:17:35.560Z"
+   "fetched": "2026-10-17T17:21:10.326Z"
   },
   "gefs": {
    "id": "gfs025",
@@ -27,9 +27,9 @@
   },
   "icon": {
    "id": "icon_seamless_eps",
-   "run": "2026-10-17T00:00Z",
+   "run": "2026-10-17T06:00Z",
    "estimated": true,
-   "fetched": "2026-10-17T10:58:59.883Z"
+   "fetched": "2026-10-17T17:21:11.784Z"
   }
  },
  "long": {
