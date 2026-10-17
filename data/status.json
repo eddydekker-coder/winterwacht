@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-17T17:21:09.068Z",
+ "checked": "2026-10-17T19:36:04.647Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
@@ -15,15 +15,15 @@
   },
   "gefs": {
    "id": "gfs025",
-   "run": "2026-10-17T06:00Z",
+   "run": "2026-10-17T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-17T14:17:36.277Z"
+   "fetched": "2026-10-17T19:36:06.041Z"
   },
   "gem": {
    "id": "gem_global",
-   "run": "2026-10-17T00:00Z",
+   "run": "2026-10-17T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-17T10:58:59.377Z"
+   "fetched": "2026-10-17T19:36:06.380Z"
   },
   "icon": {
    "id": "icon_seamless_eps",
