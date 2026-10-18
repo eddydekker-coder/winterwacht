@@ -1,11 +1,11 @@
 {
- "checked": "2026-10-18T06:05:34.004Z",
+ "checked": "2026-10-18T11:25:17.512Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
-   "run": "2026-10-17T18:00Z",
+   "run": "2026-10-18T00:00Z",
    "estimated": false,
-   "fetched": "2026-10-18T06:05:34.883Z"
+   "fetched": "2026-10-18T11:25:18.282Z"
   },
   "ifs": {
    "id": "ecmwf_ifs025",
@@ -21,15 +21,15 @@
   },
   "gem": {
    "id": "gem_global",
-   "run": "2026-10-17T12:00Z",
+   "run": "2026-10-18T00:00Z",
    "estimated": true,
-   "fetched": "2026-10-17T22:28:12.292Z"
+   "fetched": "2026-10-18T11:25:19.255Z"
   },
   "icon": {
    "id": "icon_seamless_eps",
-   "run": "2026-10-17T18:00Z",
+   "run": "2026-10-18T00:00Z",
    "estimated": true,
-   "fetched": "2026-10-18T06:05:36.658Z"
+   "fetched": "2026-10-18T11:25:19.674Z"
   }
  },
  "long": {
