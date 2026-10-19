@@ -441,3 +441,20 @@ button.term:hover, button.term:focus-visible { text-decoration-style: solid; col
 .cmptab thead th { font: 600 0.74rem var(--font-ui); color: var(--ink-soft); }
 .cmptab tbody th { text-align: left; font-weight: 700; }
 .cmptab small { font-weight: 400; color: var(--ink-soft); }
+
+/* ---------- spel: sneeuwschuiven ---------- */
+body.ingame #snow { display: none; }
+.gstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.gstat { margin: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.gstat span { display: block; font-size: 0.72rem; color: var(--ink-soft); }
+.gstat b { font: 600 1.7rem/1.1 var(--font-num); }
+.gstat i { font-style: normal; }
+.gamewrap { position: relative; margin-top: 12px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #0f2038; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28); }
+#gameCanvas { display: block; width: 100%; touch-action: none; cursor: ew-resize; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+#gameCanvas:focus-visible { outline-offset: -3px; }
+.gover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 20px; text-align: center; background: rgba(10, 22, 38, 0.66); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.gover h2 { margin: 0; font: 600 2rem/1.1 var(--font-num); }
+.gover p { margin: 0 0 8px; color: var(--ink-soft); max-width: 30ch; }
+.gctl { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; }
+.gbtn { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.gbtn.primary { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }

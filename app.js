@@ -2,18 +2,19 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=17';
+} from './lib/stats.js?v=18';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=17';
+} from './lib/longrange.js?v=18';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=17';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=17';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=17';
-import { outlook } from './lib/outlook.js?v=17';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=17';
-import { initMaps } from './lib/maps.js?v=17';
+} from './lib/hourly.js?v=18';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=18';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=18';
+import { outlook } from './lib/outlook.js?v=18';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=18';
+import { initMaps } from './lib/maps.js?v=18';
+import { initGame } from './lib/game.js?v=18';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -1001,10 +1002,11 @@ function plumeFor(mapModel, day) {
   return d ? { day: d, run: src.run } : null;
 }
 let maps = null;
+let game = null;
 function showView(v) {
-  if (!['now', '5', '14', '90', 'maps'].includes(v)) v = 'now';
+  if (!['now', '5', '14', '90', 'maps', 'game'].includes(v)) v = 'now';
   state.view = v; store.set('ww.view', v);
-  for (const k of ['now', '5', '14', '90', 'maps']) {
+  for (const k of ['now', '5', '14', '90', 'maps', 'game']) {
     $(`tab-${k}`).setAttribute('aria-selected', v === k);
     $(`view-${k}`).hidden = v !== k;
   }
@@ -1014,6 +1016,8 @@ function showView(v) {
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
   maps?.show(v === 'maps');
+  document.body.classList.toggle('ingame', v === 'game');
+  game?.show(v === 'game');
 }
 
 async function refresh() {
@@ -1044,6 +1048,11 @@ function init() {
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
   $('tab-maps').addEventListener('click', () => showView('maps'));
+  $('tab-game').addEventListener('click', () => showView('game'));
+  game = initGame({
+    canvas: $('gameCanvas'), wrap: $('gameWrap'), level: $('gameLevel'), score: $('gScore'), clear: $('gClear'), time: $('gTime'), timeLabel: $('gTimeLabel'),
+    pause: $('gPause'), reset: $('gReset'), mode: $('gMode'), over: $('gOver'), overTitle: $('gOverTitle'), overText: $('gOverText'), overBtn: $('gOverBtn'), hint: $('gHint'),
+  });
   maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet'), cmp: $('mapCmp') }, () => state.loc, plumeFor);
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;

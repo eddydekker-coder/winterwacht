@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -37,6 +37,7 @@
     <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">Lange termijn</button>
     <button role="tab" id="tab-90" aria-selected="false" aria-controls="view-90">Winter</button>
     <button role="tab" id="tab-maps" aria-selected="false" aria-controls="view-maps">Weerkaarten</button>
+    <button role="tab" id="tab-game" aria-selected="false" aria-controls="view-game">⛄ Spel</button>
   </nav>
 
   <main>
@@ -226,6 +227,39 @@
       <div id="mapCards"></div>
       <p class="note">Kaarten zijn getekend uit de open modeldata van ECMWF (IFS en AIFS, CC BY 4.0) en NOAA (GFS), op een <button type="button" class="term" data-t="raster">raster van 1 graad</button>. De temperatuur, wind en neerslag in de uitleg komen uit hetzelfde model en dezelfde run als de kaart (een momentopname). Voor dagextremen gelden de pluimen en uurwaarden in de andere tabbladen.</p>
     </section>
+
+    <!-- TAB SPEL -->
+    <section id="view-game" role="tabpanel" aria-labelledby="tab-game" hidden>
+      <div class="verdict">
+        <h1>Sneeuwschuiven</h1>
+        <p>De sneeuwman moet de straat vrijhouden. Beweeg je muis of veeg met je vinger, hij schuift mee. Blijf niet staan: dan zit hij zo tot zijn buik in de sneeuw.</p>
+      </div>
+      <div class="modelpick" role="radiogroup" aria-label="Sneeuwintensiteit" id="gameLevel">
+        <button role="radio" aria-checked="false" data-l="1">Motsneeuw</button>
+        <button role="radio" aria-checked="true" data-l="2">Matig</button>
+        <button role="radio" aria-checked="false" data-l="3">Flink</button>
+        <button role="radio" aria-checked="false" data-l="4">Sneeuwstorm</button>
+      </div>
+      <div class="gstats" aria-live="off">
+        <p class="gstat"><span>Opgeruimd</span><b><i id="gScore">0,0</i> m³</b></p>
+        <p class="gstat"><span>Straat vrij</span><b id="gClear">100%</b></p>
+        <p class="gstat"><span id="gTimeLabel">Record (tijdrit)</span><b id="gTime">–</b></p>
+      </div>
+      <div class="gamewrap" id="gameWrap">
+        <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Sneeuwspel: een sneeuwman met een schuiver op een besneeuwde straat. Bedien met muis, vinger of de pijltjestoetsen."></canvas>
+        <div class="gover" id="gOver" hidden>
+          <h2 id="gOverTitle">Pauze</h2>
+          <p id="gOverText"></p>
+          <button type="button" class="gbtn primary" id="gOverBtn">Verder</button>
+        </div>
+      </div>
+      <p class="note" id="gHint">Op een computer: muis heen en weer. Op je telefoon: houd je vinger op het spel en veeg. Toetsenbord: pijltjes links en rechts, spatie voor pauze. Vang de gouden vlok voor een turbo-schuiver.</p>
+      <div class="gctl">
+        <button type="button" class="gbtn" id="gPause" aria-pressed="false">Pauze</button>
+        <button type="button" class="gbtn" id="gReset">Straat opnieuw</button>
+        <button type="button" class="gbtn primary" id="gMode">Tijdrit van 60 s</button>
+      </div>
+    </section>
   </main>
 
   <footer class="foot" id="foot"></footer>
@@ -253,6 +287,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=17"></script>
+  <script type="module" src="app.js?v=18"></script>
 </body>
 </html>
