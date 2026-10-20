@@ -1,6 +1,6 @@
 // Service worker: app-schil offline beschikbaar, weerdata altijd eerst vers van het netwerk.
-const CACHE = 'winterwacht-v18';
-const SHELL = ['./', 'index.html', 'styles.css?v=18', 'app.js?v=18', 'lib/stats.js?v=18', 'lib/longrange.js?v=18', 'lib/hourly.js?v=18', 'lib/radar.js?v=18', 'lib/runfilm.js?v=18', 'lib/outlook.js?v=18', 'lib/rainfx.js?v=18', 'lib/maps.js?v=18', 'lib/game.js?v=18', 'lib/glossary.js?v=18', 'lib/coast.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/apple-touch-icon.png'];
+const CACHE = 'winterwacht-v19';
+const SHELL = ['./', 'index.html', 'styles.css?v=19', 'app.js?v=19', 'lib/stats.js?v=19', 'lib/longrange.js?v=19', 'lib/hourly.js?v=19', 'lib/radar.js?v=19', 'lib/runfilm.js?v=19', 'lib/outlook.js?v=19', 'lib/rainfx.js?v=19', 'lib/maps.js?v=19', 'lib/game.js?v=19', 'lib/glossary.js?v=19', 'lib/coast.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

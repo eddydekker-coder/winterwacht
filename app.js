@@ -2,19 +2,19 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=18';
+} from './lib/stats.js?v=19';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=18';
+} from './lib/longrange.js?v=19';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=18';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=18';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=18';
-import { outlook } from './lib/outlook.js?v=18';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=18';
-import { initMaps } from './lib/maps.js?v=18';
-import { initGame } from './lib/game.js?v=18';
+} from './lib/hourly.js?v=19';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=19';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=19';
+import { outlook } from './lib/outlook.js?v=19';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=19';
+import { initMaps } from './lib/maps.js?v=19';
+import { initGame } from './lib/game.js?v=19';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -529,17 +529,28 @@ function partCard(p) {
   const temp = p.night
     ? `<span class="nbig">${deg(tmin)}</span><span class="nsub">minimum</span>`
     : `<span class="nbig">${deg(tmax)}</span><span class="nsub">maximum</span>`;
-  const pr = rain >= 0.1 ? `${nl(rain.toFixed(1))} mm ${types.join(', ') || 'neerslag'}` : (pop != null && pop >= 30 ? 'kans op een bui' : 'droog');
+  const st = 'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  const ic = (d, label) => `<svg class="ri" viewBox="0 0 24 24" role="img" aria-label="${label}"><path ${st} d="${d}"/></svg>`;
+  const I = {
+    temp: ic('M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0ZM12 9v7', 'temperatuur'),
+    drop: ic('M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-10Z', 'neerslag'),
+    umb: ic('M3.5 12a8.5 8.5 0 0 1 17 0ZM12 12v6.5a1.8 1.8 0 0 1-3.6 0M12 3.5V2.5', 'kans'),
+    wind: ic('M3 9h11a2.5 2.5 0 1 0-2.5-2.5M3 13h15a2.5 2.5 0 1 1-2.5 2.5M3 17h7', 'wind'),
+    gust: ic('M3 8h9a2.5 2.5 0 1 0-2.5-2.5M3 12h14M3 16h9a2.5 2.5 0 1 1-2.5 2.5M19 9v4M19 16v.5', 'windstoten'),
+  };
+  const arrow = (dir) => (dir == null ? '' : `<i class="warr" style="--r:${(dir + 180) % 360}deg" aria-hidden="true"></i>`);
+  const isWet = rain >= 0.1;
+  const prMain = isWet ? `${nl(rain.toFixed(1))} mm <small class="in">${esc(types.join(', ') || 'neerslag')}</small>` : (pop != null && pop >= 30 ? 'kans op een bui' : 'droog');
   const rows = [
-    ['Temperatuur', p.night ? `${deg(tmin)} tot ${deg(tmax)}` : `${deg(tmin)} tot ${deg(tmax)}`, `gevoel tot ${deg(fmin)}`],
-    ['Neerslag', pr, pop != null ? `kans ${pop}%` : ''],
-    ['Wind', `${compass(windy.dir)} ${windy.bft ?? '–'} Bft`, gust ? `stoten tot ${gust} km/u` : ''],
+    [I.temp, `<span class="hi" title="hoogste">↑ ${deg(tmax)}</span><span class="lo" title="laagste">↓ ${deg(tmin)}</span>`, fs.length ? `<span class="sec" title="gevoelstemperatuur">≈ ${deg(fmin)} <small class="in">gevoel</small></span>` : ''],
+    [I.drop, `<span class="${isWet ? '' : 'dry'}">${prMain}</span>`, pop != null ? `<span class="sec">${I.umb}${pop}%</span>` : ''],
+    [I.wind, `<span>${arrow(windy.dir)} ${compass(windy.dir)} ${windy.bft ?? '–'} <small class="in">Bft</small></span>`, gust ? `<span class="sec${gust >= 60 ? ' warn' : ''}">${I.gust}${gust} <small class="in">km/u</small></span>` : ''],
   ];
   return `<article class="ncard${p.night ? ' night' : ''}">
     <header><h3>${p.title}</h3><span>${p.span}</span></header>
     <div class="nmain">${icon}<div class="ntemp">${temp}</div></div>
     ${hz.length ? `<p class="hwarn">${hz.map((w) => `<span>${esc(w[0].toUpperCase() + w.slice(1))}</span>`).join('')}</p>` : ''}
-    <dl>${rows.map(([k, v, sub]) => `<dt>${k}</dt><dd>${v}${sub ? ` <small>${sub}</small>` : ''}</dd>`).join('')}</dl>
+    <ul class="nrows">${rows.map(([i, v, sec]) => `<li>${i}<span class="main">${v}</span>${sec}</li>`).join('')}</ul>
   </article>`;
 }
 function renderNow(res) {

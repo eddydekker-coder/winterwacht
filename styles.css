@@ -458,3 +458,21 @@ body.ingame #snow { display: none; }
 .gctl { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; }
 .gbtn { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
 .gbtn.primary { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }
+
+/* kaartjes op Nu: icoon + waarde per regel */
+.ncard { container-type: inline-size; }
+.nrows { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
+.nrows li { display: grid; grid-template-columns: 18px 1fr; column-gap: 8px; row-gap: 2px; align-items: center; font-size: 0.92rem; }
+.nrows .ri { width: 18px; height: 18px; flex: none; color: var(--frost); }
+.nrows .main { display: inline-flex; align-items: baseline; flex-wrap: wrap; column-gap: 10px; font: 600 1.05rem/1.15 var(--font-num); min-width: 0; }
+.nrows .main .lo { color: var(--ink-soft); font-weight: 500; }
+.nrows .main .dry { color: var(--ink-soft); font: 500 0.92rem var(--font-ui); }
+.nrows .sec { grid-column: 2; display: inline-flex; align-items: center; gap: 4px; font: 500 0.92rem/1 var(--font-num); color: var(--ink-soft); }
+.nrows .sec .ri { width: 14px; height: 14px; color: var(--ink-soft); }
+.nrows .sec.warn, .nrows .sec.warn .ri { color: var(--warmer); }
+.nrows small.in { display: inline; font: 400 0.7rem var(--font-ui); color: var(--ink-soft); margin-left: 1px; }
+.nrows .warr { width: 9px; height: 11px; margin-right: 2px; vertical-align: -1px; }
+@container (min-width: 250px) {
+  .nrows li { grid-template-columns: 18px 1fr auto; }
+  .nrows .sec { grid-column: 3; justify-self: end; }
+}
