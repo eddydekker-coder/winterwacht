@@ -14,10 +14,10 @@ jobs:
         run: |
           exec > probe-out.txt 2>&1
           date -u
-          echo "=== A"; curl -sS -m 40 -X POST -d "start=2026102218&end=2026102324&vars=T:FF:FX:DD:RH:DR&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | tail -12
-          echo "=== B (start 00)"; curl -sS -m 40 -X POST -d "start=2026102200&end=2026102324&vars=T:RH&stns=278" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -6
-          echo "=== C (extra stations)"; curl -sS -m 40 -X POST -d "start=2026102200&end=2026102324&vars=T:RH&stns=290:273:275" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -6
-          echo "=== D (end next day 24)"; curl -sS -m 40 -X POST -d "start=2026102300&end=2026102324&vars=T:RH&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -12
+          echo "=== last rows start 20 oct"; curl -sS -m 40 -X POST -d "start=2026102000&end=2026102324&vars=T:RH&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -6
+          echo "=== wider: end=2026102524"; curl -sS -m 40 -X POST -d "start=2026102100&end=2026102524&vars=T:RH&stns=278" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -4
+          echo "=== another date format: 20261023 daily-style (YYYYMMDD)"; curl -sS -m 40 -X POST -d "start=20261022&end=20261023&vars=T:RH&stns=278" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -4
+          echo "=== all stations list"; curl -sS -m 40 -X POST -d "start=2026102100&end=2026102101&vars=T&stns=ALL" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -E '^# +[0-9]{3} ' 
       - name: save
         if: always()
         run: |
