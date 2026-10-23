@@ -51,6 +51,26 @@ jobs:
           else
             echo "Geen nieuwe kaartruns."
           fi
+      - name: Waarnemingen ophalen (KNMI, extra aanloop naast obs.yml)
+        # GitHub voert schema's van elke 10 minuten vaak met uren vertraging uit; dit uurlijkse schema is betrouwbaarder.
+        continue-on-error: true
+        env:
+          KNMI_API_KEY: ${{ secrets.KNMI_API_KEY }}
+        run: |
+          git clone --quiet --depth 1 --branch obs-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-out || mkdir -p obs-out
+          pip install --quiet netCDF4
+          OBS_OUT="$PWD/obs-out" python scripts/obs.py
+          cd obs-out
+          if [ -f .updated ]; then
+            rm -f .updated
+            rm -rf .git
+            git init --quiet -b obs-data
+            git config user.name "winterwacht-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A
+            git commit --quiet -m "Waarnemingen $(date -u +'%Y-%m-%d %H:%MZ')"
+            git push --quiet --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-data
+          fi
       - name: Opslaan als er iets nieuws is
         run: |
           if [ -n "$(git status --porcelain data)" ]; then
