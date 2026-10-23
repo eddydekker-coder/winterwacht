@@ -13,21 +13,28 @@ jobs:
       - name: probe
         run: |
           exec > probe-out.txt 2>&1
-          echo "=== buienradar headers"; curl -sS -m 30 -D - -o br.json https://data.buienradar.nl/2.0/feed/json | head -20
-          python3 -c "
-          import json
-          d=json.load(open('br.json'))
-          print([k for k in d['actual']])
-          for s in d['actual']['stationmeasurements']:
-              if s['stationname'].endswith(('Heino','Hoogeveen')): print(json.dumps(s,indent=1))
-          print(len(d['actual']['stationmeasurements']),'stations')
-          print(sorted(s['stationname'] for s in d['actual']['stationmeasurements']))
+          date -u
+          for i in 1 2 3; do
+          echo "=== uurgegevens try $i"
+          curl -sS -m 40 -X POST -d "start=2026102218&end=2026102324&vars=T:FF:FX:DD:RH:DR&stns=278:279:290:273:275" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -14
+          sleep 20
+          done
+          echo "=== station list sample"
+          curl -sS -m 40 -X POST -d "start=2026102300&end=2026102324&vars=T&stns=ALL" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -3
+          echo "=== previous runs multi model"
+          for m in ecmwf_ifs025 ecmwf_aifs025_single ecmwf_aifs025 gfs_seamless gfs025 icon_seamless icon_global gem_seamless knmi_harmonie_arome_europe knmi_seamless meteofrance_seamless ukmo_seamless; do
+            echo -n "$m: "; curl -sS -m 30 "https://previous-runs-api.open-meteo.com/v1/forecast?latitude=52.5214&longitude=6.4208&hourly=temperature_2m,temperature_2m_previous_day1,temperature_2m_previous_day3,temperature_2m_previous_day7,wind_speed_10m_previous_day2,precipitation_previous_day5&models=$m&past_days=3&forecast_days=1&timezone=UTC&wind_speed_unit=ms" | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          if d.get('error'): print('ERR',d.get('reason')); sys.exit()
+          h=d['hourly']; ks=[k for k in h if k!='time']
+          out=[]
+          for k in ks:
+              v=h[k]; n=sum(1 for x in v if x is not None)
+              out.append(k+':'+str(n)+'/'+str(len(v)))
+          print(' '.join(out))
           "
-          echo "=== daggegevens uurgegevens"
-          curl -sS -m 40 -D - -X POST -d "start=2026102000&end=2026102324&vars=T:FF:FX:DD:RH:DR:P&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | head -c 4500
-          echo "=== daggegevens daily CORS check"; curl -sS -m 20 -I -H "Origin: https://eddydekker-coder.github.io" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | head -15
-          echo "=== raw github cors"; curl -sS -m 20 -I -H "Origin: https://eddydekker-coder.github.io" https://raw.githubusercontent.com/eddydekker-coder/winterwacht/main/config.json | head -12
-          echo "=== opendata list again (rate limit?)"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -G -H "Authorization: eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjUzYTg1ZDBhMmQ5YzRkYzJiYWNlNzQ4NTQ2Zjk4ODExIiwiaCI6Im11cm11cjEyOCJ9" "https://api.dataplatform.knmi.nl/open-data/v1/datasets/10-minute-in-situ-meteorological-observations/versions/1.0/files" -d maxKeys=2 -d orderBy=created -d sorting=desc | head -c 800
+          done
       - name: save
         if: always()
         run: |
