@@ -14,21 +14,36 @@ jobs:
         run: |
           exec > probe-out.txt 2>&1
           date -u
-          for ep in RainHistory RainHistoryForecast; do
-            curl -sS -m 30 "https://graphdata.buienradar.nl/2.0/forecast/geo/$ep?lat=52.52&lon=6.42" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin); f=d['forecasts']
-          print('$ep', len(f), f[0]['utcdatetime'], '->', f[-1]['utcdatetime'], [k for k in d if k!='forecasts'])
-          print([ (x['utcdatetime'][11:16], x['precipitation']) for x in f][:40])
-          "
+          K=eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjUzYTg1ZDBhMmQ5YzRkYzJiYWNlNzQ4NTQ2Zjk4ODExIiwiaCI6Im11cm11cjEyOCJ9
+          B=https://api.dataplatform.knmi.nl/open-data/v1/datasets/10-minute-in-situ-meteorological-observations/versions/1.0/files
+          ok=0
+          for i in $(seq 1 12); do
+            code=$(curl -sS -m 30 -o list.json -w "%{http_code}" -G -H "Authorization: $K" "$B" -d maxKeys=3 -d orderBy=created -d sorting=desc)
+            echo "list try $i: $code"; if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep $((5 + i*2))
           done
-          for ep in RainHistory24h RainHistory12h Rain24Hours RainHistoryDay Precipitation24Hours Temperature24Hours TemperatureHistory WindHistory; do
-            echo -n "$ep: "; curl -sS -m 30 -o b.txt -w "%{http_code} " "https://graphdata.buienradar.nl/2.0/forecast/geo/$ep?lat=52.52&lon=6.42"; head -c 200 b.txt; echo
-          done
-          echo "=== station graph candidates"
-          for u in "https://graphdata.buienradar.nl/2.0/graph/weatherstation/6278" "https://graphdata.buienradar.nl/2.0/forecast/station/6278" "https://observations.buienradar.nl/1.0/actual/weatherstation/history/6278" "https://observations.buienradar.nl/1.0/history/weatherstation/6278" "https://observations.buienradar.nl/1.0/actual/weatherstation/24h/6278" "https://observations.buienradar.nl/1.0/downloadfile/weatherstation/6278"; do
-            echo -n "$u: "; curl -sS -m 30 -o b.txt -w "%{http_code} " "$u"; head -c 200 b.txt; echo
-          done
+          if [ $ok = 1 ]; then
+            cat list.json | head -c 800; echo
+            fn=$(python3 -c "import json;print(json.load(open('list.json'))['files'][0]['filename'])")
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -sS -m 30 -o url.json -w "%{http_code}" -H "Authorization: $K" "$B/$fn/url"); echo "url try $i: $code"
+              if [ "$code" = "200" ]; then break; fi; sleep 10
+            done
+            u=$(python3 -c "import json;print(json.load(open('url.json'))['temporaryDownloadUrl'])")
+            curl -sS -m 60 -o obs.nc "$u"; ls -la obs.nc
+            pip install -q netCDF4 numpy 2>&1 | tail -1
+            python3 - <<'PY'
+          import netCDF4, numpy as np
+          ds = netCDF4.Dataset('obs.nc')
+          print(ds.dimensions.keys())
+          for k,v in ds.variables.items():
+              print(k, v.dimensions, getattr(v,'long_name',''), getattr(v,'units',''))
+          names = ds.variables['stationname'][:] if 'stationname' in ds.variables else None
+          print(names[:5] if names is not None else None)
+          st = ds.variables['station'][:]
+          print(st[:5])
+          PY
+          fi
       - name: save
         if: always()
         run: |
