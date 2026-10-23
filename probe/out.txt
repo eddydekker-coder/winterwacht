@@ -1,15 +1,20 @@
-Fri Oct 23 07:36:56 UTC 2026
-Traceback (most recent call last):
-  File "<string>", line 3, in <module>
-  File "/usr/lib/python3.12/json/__init__.py", line 293, in load
-    return loads(fp.read(),
-           ^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/json/decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/json/decoder.py", line 355, in raw_decode
-    raise JSONDecodeError("Expecting value", s, err.value) from None
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+Fri Oct 23 07:37:47 UTC 2026
+RainHistory 34 2026-10-23T07:40:00 -> 2026-10-23T10:25:00 ['color', 'lat', 'lon', 'borders', 'timeOffset', 'radius', 'emptytext', 'createdUtc', 'lastRefreshUtc', 'elapsedMs']
+[('07:40', 0.1), ('07:45', 0.0), ('07:50', 0.0), ('07:55', 0.0), ('08:00', 0.0), ('08:05', 0.0), ('08:10', 0.0), ('08:15', 0.0), ('08:20', 0.0), ('08:25', 0.0), ('08:30', 0.0), ('08:35', 0.0), ('08:40', 0.0), ('08:45', 0.2), ('08:50', 0.0), ('08:55', 0.1), ('09:00', 0.2), ('09:05', 0.4), ('09:10', 0.7), ('09:15', 0.6), ('09:20', 0.2), ('09:25', 0.1), ('09:30', 0.0), ('09:35', 0.0), ('09:40', 0.0), ('09:45', 0.0), ('09:50', 0.0), ('09:55', 0.0), ('10:00', 0.1), ('10:05', 0.0), ('10:10', 0.0), ('10:15', 0.0), ('10:20', 0.0), ('10:25', 0.0)]
+RainHistoryForecast 37 2026-10-23T07:20:00 -> 2026-10-23T10:25:00 ['color', 'lat', 'lon', 'borders', 'timeOffset', 'radius', 'emptytext', 'createdUtc', 'lastRefreshUtc', 'elapsedMs']
+[('07:20', 1.0), ('07:25', 1.3), ('07:30', 0.6), ('07:40', 0.1), ('07:45', 0.0), ('07:50', 0.0), ('07:55', 0.0), ('08:00', 0.0), ('08:05', 0.0), ('08:10', 0.0), ('08:15', 0.0), ('08:20', 0.0), ('08:25', 0.0), ('08:30', 0.0), ('08:35', 0.0), ('08:40', 0.0), ('08:45', 0.2), ('08:50', 0.0), ('08:55', 0.1), ('09:00', 0.2), ('09:05', 0.4), ('09:10', 0.7), ('09:15', 0.6), ('09:20', 0.2), ('09:25', 0.1), ('09:30', 0.0), ('09:35', 0.0), ('09:40', 0.0), ('09:45', 0.0), ('09:50', 0.0), ('09:55', 0.0), ('10:00', 0.1), ('10:05', 0.0), ('10:10', 0.0), ('10:15', 0.0), ('10:20', 0.0), ('10:25', 0.0)]
+RainHistory24h: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+RainHistory12h: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+Rain24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+RainHistoryDay: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+Precipitation24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+Temperature24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+TemperatureHistory: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+WindHistory: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
+=== station graph candidates
+https://graphdata.buienradar.nl/2.0/graph/weatherstation/6278: 404 
+https://graphdata.buienradar.nl/2.0/forecast/station/6278: 404 
+https://observations.buienradar.nl/1.0/actual/weatherstation/history/6278: 404 
+https://observations.buienradar.nl/1.0/history/weatherstation/6278: 404 
+https://observations.buienradar.nl/1.0/actual/weatherstation/24h/6278: 404 
+https://observations.buienradar.nl/1.0/downloadfile/weatherstation/6278: 404 
