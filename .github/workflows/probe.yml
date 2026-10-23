@@ -11,29 +11,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: probe
-        env:
-          K: eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjUzYTg1ZDBhMmQ5YzRkYzJiYWNlNzQ4NTQ2Zjk4ODExIiwiaCI6Im11cm11cjEyOCJ9
         run: |
           exec > probe-out.txt 2>&1
-          EDR=https://api.dataplatform.knmi.nl/edr/v1/collections/10-minute-in-situ-meteorological-observations
-          echo "=== EDR locations"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -H "Authorization: $K" "$EDR/locations" | head -c 1500
-          echo; echo "=== EDR locations grep"; curl -sS -m 30 -H "Authorization: $K" "$EDR/locations" | python3 -c "
-          import sys,json
-          d=json.load(sys.stdin)
-          for f in d.get('features',[]):
-              p=f.get('properties',{}); n=p.get('name','')
-              print(f.get('id'), n, f.get('geometry',{}).get('coordinates'))
-          " | head -80
-          echo "=== EDR collection meta"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -H "Authorization: $K" "$EDR" | head -c 6000
-          echo "=== OpenData list"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -G -H "Authorization: $K" "https://api.dataplatform.knmi.nl/open-data/v1/datasets/10-minute-in-situ-meteorological-observations/versions/1.0/files" -d maxKeys=3 -d orderBy=created -d sorting=desc | head -c 1200
-          echo "=== buienradar"; curl -sS -m 30 -o br.json -w "HTTP %{http_code}\n" https://data.buienradar.nl/2.0/feed/json; python3 -c "
+          echo "=== buienradar headers"; curl -sS -m 30 -D - -o br.json https://data.buienradar.nl/2.0/feed/json | head -20
+          python3 -c "
           import json
           d=json.load(open('br.json'))
+          print([k for k in d['actual']])
           for s in d['actual']['stationmeasurements']:
-              if any(x in s['stationname'] for x in ('Heino','Hoogeveen','Twenthe','Marknesse','Deelen')): print(s)
-          " || true
-          echo "=== previous runs"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" "https://previous-runs-api.open-meteo.com/v1/forecast?latitude=52.5214&longitude=6.4208&hourly=temperature_2m,temperature_2m_previous_day1,temperature_2m_previous_day5&models=ecmwf_aifs025&past_days=1&forecast_days=1&timezone=UTC" | head -c 800
-
+              if s['stationname'].endswith(('Heino','Hoogeveen')): print(json.dumps(s,indent=1))
+          print(len(d['actual']['stationmeasurements']),'stations')
+          print(sorted(s['stationname'] for s in d['actual']['stationmeasurements']))
+          "
+          echo "=== daggegevens uurgegevens"
+          curl -sS -m 40 -D - -X POST -d "start=2026102000&end=2026102324&vars=T:FF:FX:DD:RH:DR:P&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | head -c 4500
+          echo "=== daggegevens daily CORS check"; curl -sS -m 20 -I -H "Origin: https://eddydekker-coder.github.io" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | head -15
+          echo "=== raw github cors"; curl -sS -m 20 -I -H "Origin: https://eddydekker-coder.github.io" https://raw.githubusercontent.com/eddydekker-coder/winterwacht/main/config.json | head -12
+          echo "=== opendata list again (rate limit?)"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -G -H "Authorization: eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjUzYTg1ZDBhMmQ5YzRkYzJiYWNlNzQ4NTQ2Zjk4ODExIiwiaCI6Im11cm11cjEyOCJ9" "https://api.dataplatform.knmi.nl/open-data/v1/datasets/10-minute-in-situ-meteorological-observations/versions/1.0/files" -d maxKeys=2 -d orderBy=created -d sorting=desc | head -c 800
       - name: save
         if: always()
         run: |
