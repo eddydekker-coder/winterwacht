@@ -1,20 +1,111 @@
-Fri Oct 23 07:37:47 UTC 2026
-RainHistory 34 2026-10-23T07:40:00 -> 2026-10-23T10:25:00 ['color', 'lat', 'lon', 'borders', 'timeOffset', 'radius', 'emptytext', 'createdUtc', 'lastRefreshUtc', 'elapsedMs']
-[('07:40', 0.1), ('07:45', 0.0), ('07:50', 0.0), ('07:55', 0.0), ('08:00', 0.0), ('08:05', 0.0), ('08:10', 0.0), ('08:15', 0.0), ('08:20', 0.0), ('08:25', 0.0), ('08:30', 0.0), ('08:35', 0.0), ('08:40', 0.0), ('08:45', 0.2), ('08:50', 0.0), ('08:55', 0.1), ('09:00', 0.2), ('09:05', 0.4), ('09:10', 0.7), ('09:15', 0.6), ('09:20', 0.2), ('09:25', 0.1), ('09:30', 0.0), ('09:35', 0.0), ('09:40', 0.0), ('09:45', 0.0), ('09:50', 0.0), ('09:55', 0.0), ('10:00', 0.1), ('10:05', 0.0), ('10:10', 0.0), ('10:15', 0.0), ('10:20', 0.0), ('10:25', 0.0)]
-RainHistoryForecast 37 2026-10-23T07:20:00 -> 2026-10-23T10:25:00 ['color', 'lat', 'lon', 'borders', 'timeOffset', 'radius', 'emptytext', 'createdUtc', 'lastRefreshUtc', 'elapsedMs']
-[('07:20', 1.0), ('07:25', 1.3), ('07:30', 0.6), ('07:40', 0.1), ('07:45', 0.0), ('07:50', 0.0), ('07:55', 0.0), ('08:00', 0.0), ('08:05', 0.0), ('08:10', 0.0), ('08:15', 0.0), ('08:20', 0.0), ('08:25', 0.0), ('08:30', 0.0), ('08:35', 0.0), ('08:40', 0.0), ('08:45', 0.2), ('08:50', 0.0), ('08:55', 0.1), ('09:00', 0.2), ('09:05', 0.4), ('09:10', 0.7), ('09:15', 0.6), ('09:20', 0.2), ('09:25', 0.1), ('09:30', 0.0), ('09:35', 0.0), ('09:40', 0.0), ('09:45', 0.0), ('09:50', 0.0), ('09:55', 0.0), ('10:00', 0.1), ('10:05', 0.0), ('10:10', 0.0), ('10:15', 0.0), ('10:20', 0.0), ('10:25', 0.0)]
-RainHistory24h: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-RainHistory12h: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-Rain24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-RainHistoryDay: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-Precipitation24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-Temperature24Hours: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-TemperatureHistory: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-WindHistory: 200 {"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":
-=== station graph candidates
-https://graphdata.buienradar.nl/2.0/graph/weatherstation/6278: 404 
-https://graphdata.buienradar.nl/2.0/forecast/station/6278: 404 
-https://observations.buienradar.nl/1.0/actual/weatherstation/history/6278: 404 
-https://observations.buienradar.nl/1.0/history/weatherstation/6278: 404 
-https://observations.buienradar.nl/1.0/actual/weatherstation/24h/6278: 404 
-https://observations.buienradar.nl/1.0/downloadfile/weatherstation/6278: 404 
+Fri Oct 23 07:38:54 UTC 2026
+list try 1: 429
+list try 2: 429
+list try 3: 429
+list try 4: 429
+list try 5: 200
+{"isTruncated": true, "resultCount": 3, "files": [{"filename": "KMDS__OPER_P___10M_OBS_L2_202610230730.nc", "size": 156319, "created": "2026-10-23T07:33:41+00:00", "lastModified": "2026-10-23T07:34:11+00:00"}, {"filename": "KMDS__OPER_P___10M_OBS_L2_202610230720.nc", "size": 176204, "created": "2026-10-23T07:23:41+00:00", "lastModified": "2026-10-23T07:33:38+00:00"}, {"filename": "KMDS__OPER_P___10M_OBS_L2_202610230710.nc", "size": 176204, "created": "2026-10-23T07:13:41+00:00", "lastModified": "2026-10-23T07:23:39+00:00"}], "maxResults": 3, "startAfterFilename": "", "nextPageToken": "eyJjcmVhdGVkIjogIjIwMjYtMTAtMjNUMDc6MTM6NDErMDA6MDAiLCAiaWQiOiAiMTAtbWludXRlLWluLXNpdHUtbWV0ZW9yb2xvZ2ljYWwtb2JzZXJ2YXRpb25zXzEuMF9LTURTX19PUEVSX1BfX18xME1fT0JTX0wyXzIwMjYxMDIzMDcxMC5uYyJ9"}
+url try 1: 200
+-rw-r--r-- 1 runner runner 156319 Oct 23 07:39 obs.nc
+dict_keys(['station', 'time'])
+D1H ('station', 'time') Rainfall Duration in last Hour min
+Q1H ('station', 'time') Global Solar Radiation 1 Hour Sum J/cm²
+Q24H ('station', 'time') Global Solar Radiation 24 Hour Sum J/cm²
+R12H ('station', 'time') Rainfall in last 12 Hours mm
+R1H ('station', 'time') Rainfall in last Hour mm
+R24H ('station', 'time') Rainfall in last 24 Hours mm
+R6H ('station', 'time') Rainfall in last 6 Hours mm
+Sav1H ('station', 'time') Wind Speed Mean last 1 Hour m/s
+Sax1H ('station', 'time') Wind Speed Maximum last 1 Hour m/s
+Sax3H ('station', 'time') Wind Speed Maximum last 3 Hours m/s
+Sax6H ('station', 'time') Wind Speed Maximum last 6 Hours m/s
+Sx1H ('station', 'time') Wind Gust Maximum last 1 Hour m/s
+Sx3H ('station', 'time') Wind Gust Maximum last 3 Hours m/s
+Sx6H ('station', 'time') Wind Gust Maximum last 6 Hours m/s
+Tb1n6 ('station', 'time') Soil Temperature -5 cm Minimum last 6 Hours °C
+Tb1x6 ('station', 'time') Soil Temperature -5 cm Maximum last 6 Hours °C
+Tb2n6 ('station', 'time') Soil Temperature -10 cm Minimum past 6 Hours °C
+Tb2x6 ('station', 'time') Soil Temperature -10 cm Maximum past 6 Hours °C
+Tgn12 ('station', 'time') Air Temperature 10 cm Minimum last 12 Hours °C
+Tgn14 ('station', 'time') Air Temperature 10 cm Minimum last 14 Hours °C
+Tgn6 ('station', 'time') Air Temperature 10 cm Minimum last 6 Hours °C
+Tn12 ('station', 'time') Air Temperature Minimum last 12 Hours °C
+Tn14 ('station', 'time') Air Temperature Minimum last 14 Hours °C
+Tn6 ('station', 'time') Air Temperature Minimum last 6 Hours °C
+Tx12 ('station', 'time') Air Temperature Maximum last 12 Hours °C
+Tx24 ('station', 'time') Air Temperature Maximum last 24 Hours °C
+Tx6 ('station', 'time') Air Temperature Maximum last 6 Hours °C
+W10 ('station', 'time') Past Weather Indicator 1
+W10-10 ('station', 'time') Past Weather Indicator for previous 10 min interval 1
+dd ('station', 'time') Wind Direction Mean with MD °
+dn ('station', 'time') Wind Direction Minimum with MD °
+dr ('station', 'time') Precipitation Duration (Rain Gauge) s
+dsd ('station', 'time') Wind Direction Std Dev with MD °
+dx ('station', 'time') Wind Direction Maximum with MD °
+ff ('station', 'time') Wind Speed at 10 m Mean with MD m/s
+ffs ('station', 'time') Wind Speed Sensor Mean with MD m/s
+fsd ('station', 'time') Wind Speed Std Dev with MD m/s
+fx ('station', 'time') Wind Gust at 10 m Maximum last Interval m/s
+fxs ('station', 'time') Wind Gust Sensor Maximum last Interval m/s
+gff ('station', 'time') Wind Gust at 10 m Maximum with MD m/s
+gffs ('station', 'time') Wind Gust Sensor Maximum with MD m/s
+h ('station', 'time') Cloud Base ft
+h1 ('station', 'time') Cloud Base First Layer ft
+h2 ('station', 'time') Cloud Base Second Layer ft
+h3 ('station', 'time') Cloud Base Third Layer ft
+hc ('station', 'time') Cloud Base Ceilometer ft
+hc1 ('station', 'time') Cloud Base Ceilometer First Layer ft
+hc2 ('station', 'time') Cloud Base Ceilometer Second Layer ft
+hc3 ('station', 'time') Cloud Base Ceilometer Third Layer ft
+n ('station', 'time') Total Cloud Cover okta
+n1 ('station', 'time') Cloud Amount First Layer okta
+n2 ('station', 'time') Cloud Amount Second Layer okta
+n3 ('station', 'time') Cloud Amount Third Layer okta
+nc ('station', 'time') Total Cloud Cover Ceilometer okta
+nc1 ('station', 'time') Cloud Amount Ceilometer First Layer okta
+nc2 ('station', 'time') Cloud Amount Ceilometer Second Layer okta
+nc3 ('station', 'time') Cloud Amount Ceilometer Third Layer okta
+nhc ('station', 'time') Low and Middle Cloud Amount Ceilometer okta
+p0 ('station', 'time') Air Pressure at Station Level 1 Min Mean hPa
+pg ('station', 'time') Precipitation Intensity (Present Weather Sensor) Mean mm/h
+pp ('station', 'time') Air Pressure at Mean Sea Level 1 Min Mean hPa
+pr ('station', 'time') Precipitation Duration (Present Weather Sensor) s
+ps ('station', 'time') Air Pressure at Sensor Level Mean hPa
+pwc ('station', 'time') Corrected Precipitation Type Maximum 1
+qg ('station', 'time') Global Solar Radiation Mean W/m²
+qgn ('station', 'time') Global Solar Radiation Minimum W/m²
+qgx ('station', 'time') Global Solar Radiation Maximum W/m²
+qnh ('station', 'time') QNH 1 Min Mean hPa
+rg ('station', 'time') Precipitation Intensity (Rain Gauge) Mean mm/h
+rh ('station', 'time') Relative Humidity 1 Min Mean %
+sq ('station', 'time') Squall Indicator 1
+ss ('station', 'time') Sunshine Duration min
+ta ('station', 'time') Air Temperature 1 Min Mean °C
+tb ('station', 'time') Wet Bulb Temperature Mean °C
+tb1 ('station', 'time') Soil Temperature -5 cm Mean °C
+tb2 ('station', 'time') Soil Temperature -10 cm Mean °C
+tb3 ('station', 'time') Soil Temperature -20 cm Mean °C
+tb4 ('station', 'time') Soil Temperature -50 cm Mean °C
+tb5 ('station', 'time') Soil Temperature -100 cm Mean °C
+td ('station', 'time') Dew Point Temperature 1 Min Mean °C
+tg ('station', 'time') Air Temperature 10 cm Mean °C
+tgn ('station', 'time') Air Temperature 10 cm Minimum °C
+tn ('station', 'time') Air Temperature Minimum °C
+tsd ('station', 'time') Air Temperature Std Dev °C
+tx ('station', 'time') Air Temperature Maximum °C
+vv ('station', 'time') Horizontal Visibility Mean m
+ww ('station', 'time') WaWa Weather Code 1
+ww-10 ('station', 'time') WaWa Weather Code for previous 10 min interval 1
+za ('station', 'time') Background Luminance Mean cd/m²
+zm ('station', 'time') Meteorological Optical Range Mean m
+station ('station',) Station WMO ID 
+time ('time',) Time (in UTC) indicating the end of the 10-minute measurement interval seconds since 1950-01-01
+wsi ('station',) Station WSI 
+stationname ('station',) Station name 
+lat ('station',) station latitude degrees_north
+lon ('station',) station longitude degrees_east
+height ('station',) Station elevation above mean sea level m
+product () ADAGUC Data Products Standard 1
+projection ()  
+['D15-FA-1' 'P11-B' 'K14-FA-1C' 'A12-CPP' 'L9-FF-1']
+['06201' '06203' '06204' '06205' '06207']
