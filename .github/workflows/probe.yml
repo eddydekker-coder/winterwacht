@@ -14,10 +14,16 @@ jobs:
         run: |
           exec > probe-out.txt 2>&1
           date -u
-          echo "=== last rows start 20 oct"; curl -sS -m 40 -X POST -d "start=2026102000&end=2026102324&vars=T:RH&stns=278:279" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -6
-          echo "=== wider: end=2026102524"; curl -sS -m 40 -X POST -d "start=2026102100&end=2026102524&vars=T:RH&stns=278" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -4
-          echo "=== another date format: 20261023 daily-style (YYYYMMDD)"; curl -sS -m 40 -X POST -d "start=20261022&end=20261023&vars=T:RH&stns=278" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -v '^#' | tail -4
-          echo "=== all stations list"; curl -sS -m 40 -X POST -d "start=2026102100&end=2026102101&vars=T&stns=ALL" https://www.daggegevens.knmi.nl/klimatologie/uurgegevens | grep -E '^# +[0-9]{3} ' 
+          for u in \
+            "https://observations.buienradar.nl/1.0/actual/weatherstation/10min/6278" \
+            "https://observations.buienradar.nl/1.0/actual/weatherstation/6278" \
+            "https://graphdata.buienradar.nl/2.0/forecast/geo/RainHistoryForecast?lat=52.52&lon=6.42" \
+            "https://graphdata.buienradar.nl/2.0/forecast/geo/RainHistory?lat=52.52&lon=6.42" \
+            "https://gpsgadget.buienradar.nl/data/raintext?lat=52.52&lon=6.42" \
+            "https://graphdata.buienradar.nl/3.0/forecast/geo/RainHistoryForecast?lat=52.52&lon=6.42" \
+            "https://graphdata.buienradar.nl/2.0/forecast/geo/Temperature12Hours?lat=52.52&lon=6.42" ; do
+            echo "=== $u"; curl -sS -m 30 -D - "$u" -o body.txt | grep -iE "^HTTP|access-control-allow-origin|content-type"; head -c 700 body.txt; echo
+          done
       - name: save
         if: always()
         run: |
