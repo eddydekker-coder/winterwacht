@@ -29,6 +29,7 @@ jobs:
       - name: Vorig archief ophalen (tak obs-data)
         run: |
           git clone --quiet --depth 1 --branch obs-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-out || mkdir -p obs-out
+          rm -rf obs-out/.git
           pip install --quiet netCDF4 numpy
       - name: Lus - elke 5 minuten ophalen en publiceren
         env:
@@ -50,7 +51,7 @@ jobs:
             sleep 300
           done
       - name: Zichzelf opnieuw starten
-        if: always()
+        if: success() || failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run obs.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}" || echo "herstart mislukt; het schema vangt dit op"
