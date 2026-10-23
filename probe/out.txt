@@ -1,24 +1,163 @@
-=== EDR locations
-{
-    "error": "Access to this API has been disallowed"
-}
-HTTP 403
+=== buienradar headers
+HTTP/2 200 
+content-type: application/json
+content-language: nl-NL
+x-envoy-upstream-service-time: 1
+server: envoy
+cache-control: public, max-age=50
+date: Fri, 23 Oct 2026 07:30:51 GMT
+content-length: 34686
+set-cookie: akaalb_prod_buienradarnew_api_platform_alb=~op=:~rv=81~m=~os=17c8f0129799a89822736768ca795d23~id=44aa4cd721df522e8b0912591a7c6ee9; path=/; Secure; SameSite=None
+access-control-max-age: 86400
+access-control-allow-headers: *
+access-control-allow-methods: GET,OPTIONS,POST,PUT
+access-control-allow-origin: *
+strict-transport-security: max-age=15768000 ; includeSubDomains ; preload
 
-=== EDR locations grep
-=== EDR collection meta
+['$id', 'actualradarurl', 'sunrise', 'sunset', 'stationmeasurements']
 {
-    "error": "Access to this API has been disallowed"
+ "$id": "14",
+ "stationid": 6278,
+ "stationname": "Meetstation Heino",
+ "lat": 52.43,
+ "lon": 6.27,
+ "regio": "Zwolle",
+ "timestamp": "2026-10-23T09:20:00",
+ "weatherdescription": "Zwaar bewolkt en regen",
+ "iconurl": "https://cdn.buienradar.nl/resources/images/icons/weather/30x30/q.png",
+ "fullIconUrl": "https://cdn.buienradar.nl/resources/images/icons/weather/96x96/Q.png",
+ "graphUrl": "https://www.buienradar.nl/nederland/weerbericht/weergrafieken/q",
+ "winddirection": "ZO",
+ "temperature": 10.8,
+ "groundtemperature": 10.6,
+ "feeltemperature": 9.0,
+ "windgusts": 7.6,
+ "windspeed": 3.9,
+ "windspeedBft": 3,
+ "humidity": 94.0,
+ "precipitation": 0.6,
+ "sunpower": 15.0,
+ "rainFallLast24Hour": 10.6,
+ "rainFallLastHour": 1.1,
+ "winddirectiondegrees": 133
 }
-HTTP 403
-=== OpenData list
+{
+ "$id": "17",
+ "stationid": 6279,
+ "stationname": "Meetstation Hoogeveen",
+ "lat": 52.73,
+ "lon": 6.52,
+ "regio": "Hoogeveen",
+ "timestamp": "2026-10-23T09:20:00",
+ "weatherdescription": "Zwaar bewolkt en regen",
+ "iconurl": "https://cdn.buienradar.nl/resources/images/icons/weather/30x30/q.png",
+ "fullIconUrl": "https://cdn.buienradar.nl/resources/images/icons/weather/96x96/Q.png",
+ "graphUrl": "https://www.buienradar.nl/nederland/weerbericht/weergrafieken/q",
+ "winddirection": "ZZO",
+ "airpressure": 1004.7,
+ "temperature": 10.7,
+ "groundtemperature": 10.3,
+ "feeltemperature": 8.3,
+ "visibility": 19400.0,
+ "windgusts": 7.8,
+ "windspeed": 5.4,
+ "windspeedBft": 3,
+ "humidity": 96.0,
+ "precipitation": 0.8,
+ "sunpower": 8.0,
+ "rainFallLast24Hour": 5.0,
+ "rainFallLastHour": 0.9,
+ "winddirectiondegrees": 151
+}
+40 stations
+['Meetstation Arnhem', 'Meetstation Berkhout', 'Meetstation De Bilt', 'Meetstation Den Helder', 'Meetstation Eindhoven', 'Meetstation Ell', 'Meetstation Gilze Rijen', 'Meetstation Goes', 'Meetstation Groenlo-Hupsel', 'Meetstation Groningen', 'Meetstation Heino', 'Meetstation Herwijnen', 'Meetstation Hoek van Holland', 'Meetstation Hoogeveen', 'Meetstation Hoorn Terschelling', 'Meetstation Horst', 'Meetstation Houtribdijk', 'Meetstation IJmuiden', 'Meetstation Lauwersoog', 'Meetstation Leeuwarden', 'Meetstation Lelystad', 'Meetstation Lopik-Cabauw', 'Meetstation Maastricht', 'Meetstation Marknesse', 'Meetstation Nieuw Beerta', 'Meetstation Rotterdam', 'Meetstation Rotterdam Geulhaven', 'Meetstation Schiphol', 'Meetstation Stavoren', 'Meetstation Texelhors', 'Meetstation Twente', 'Meetstation Vlieland', 'Meetstation Vlissingen', 'Meetstation Volkel', 'Meetstation Voorschoten', 'Meetstation Westdorpe', 'Meetstation Wijdenes', 'Meetstation Wijk aan Zee', 'Meetstation Woensdrecht', 'Meetstation Zeeplatform F-3']
+=== daggegevens uurgegevens
+HTTP/2 200 
+date: Fri, 23 Oct 2026 07:30:52 GMT
+content-type: text/plain
+content-length: 5741
+vary: Accept-Encoding
+x-frame-options: SAMEORIGIN
+x-xss-protection: 1; mode=block
+x-content-type-options: nosniff
+x-download-options: noopen
+x-permitted-cross-domain-policies: none
+referrer-policy: strict-origin-when-cross-origin
+content-disposition: attachment; filename="result.txt"; filename*=UTF-8''result.txt
+content-transfer-encoding: binary
+cache-control: private
+etag: W/"f74cf1d37d529b2569bc43aafc7e86c8"
+x-request-id: d231b603-5f41-4910-8e4f-22db3fdd1e7d
+x-runtime: 0.011100
+vary: Accept, Origin
+
+# Opmerking: door stationsverplaatsingen en veranderingen in waarneemmethodieken zijn deze tijdreeksen van uurwaarden mogelijk inhomogeen! Dat betekent dat deze reeks van gemeten waarden niet geschikt is voor trendanalyse. Voor studies naar klimaatverandering verwijzen we naar de gehomogeniseerde dagreeksen <http://www.knmi.nl/nederland-nu/klimatologie/daggegevens> of de Centraal Nederland Temperatuur <http://www.knmi.nl/kennis-en-datacentrum/achtergrond/centraal-nederland-temperatuur-cnt>.
+# 
+# SOURCE: ROYAL NETHERLANDS METEOROLOGICAL INSTITUTE (KNMI)
+# Comment: These time series are inhomogeneous because of station relocations and changes in observation techniques. As a result these series are not suitable for trend analysis. For climate change studies we refer to the homogenized series of daily data <http://www.knmi.nl/nederland-nu/klimatologie/daggegevens> or the Central Netherlands Temperature <http://www.knmi.nl/kennis-en-datacentrum/achtergrond/centraal-nederland-temperatuur-cnt>.
+# 
+# STN         LON(east)   LAT(north)  ALT(m)      NAME
+# 278         6.259       52.435      3.60        Heino       
+# 279         6.574       52.750      15.80       Hoogeveen   
+# YYYYMMDD  : datum (YYYY=jaar;MM=maand;DD=dag)
+# HH        : tijd (HH=uur; UT.12 UT=13 MET; 14 MEZT. Uurvak 05 loopt van 04.00 UT tot 5.00 UT
+# T         : Temperatuur (in 0.1 graden Celsius) op 1.50 m hoogte tijdens de waarneming / Temperature (in 0.1 degrees Celsius) at 1.50 m at the time of observation
+# FF        : Windsnelheid (in 0.1 m/s) gemiddeld over de laatste 10 minuten van het afgelopen uur / Mean wind speed (in 0.1 m/s) during the 10-minute period preceding the time of observation
+# FX        : Hoogste windstoot (in 0.1 m/s) over het afgelopen uurvak / Maximum wind gust (in 0.1 m/s) during the hourly division
+# DD        : Windrichting (in graden) gemiddeld over de laatste 10 minuten van het afgelopen uur (360=noord; 90=oost; 180=zuid; 270=west; 0=windstil 990=veranderlijk. Zie http://www.knmi.nl/kennis-en-datacentrum/achtergrond/klimatologische-brochures-en-boeken / Mean wind direction (in degrees) during the 10-minute period preceding the time of observation (360=north; 90=east; 180=south; 270=west; 0=calm 990=variable)
+# RH        : Uursom van de neerslag (in 0.1 mm) (-1 voor <0.05 mm) / Hourly precipitation amount (in 0.1 mm) (-1 for <0.05 mm)
+# DR        : Duur van de neerslag (in 0.1 uur) per uurvak / Precipitation duration (in 0.1 hour) during the hourly division
+# P         : Luchtdruk (in 0.1 hPa) herleid naar zeeniveau; tijdens de waarneming / Air pressure (in 0.1 hPa) reduced to mean sea level; at the time of observation
+# STN,YYYYMMDD,HH,    T,   FF,   FX,   DD,   RH,   DR,    P
+  278,20261020,    1,   65,   40,   80,   90,    0,    0,     
+  278,20261020,    2,   57,   40,   60,   80,    0,    0,     
+  278,20261020,    3,   54,   30,   70,   80,    0,    0,     
+  278,20261020,    4,   49,   40,   60,   80,    0,    0,     
+  278,20261020,    5,   46,   40,   70,   70,    0,    0,     
+  278,20261020,    6,   42,   50,   80,   80,    0,    0,     
+  278,20261020,    7,   47,   50,   80,   80,    0,    0,     
+  278,20261020,    8,   63,   50,  100,   90,    0,    0,     
+  278,20261020,    9,   70,   70,  100,   90,    0,    0,     
+  278,20261020,   10,   84,   60,   90,   90,    0,    0,     
+  278,20261020,   11,   93,   70,  110,   90,    0,    0,     
+  278,20261020,   12,  100,   70,  110,   90,    0,    0,     
+  278,20261020,   13,  109,   50,  100,   80,    0,    0,     
+  278,20261020,   14,  112,   60,  110,   90,    0,    0,     
+  278,20261020,   15,  109,   60,  100,   80,    0,    0,     
+  278,20261020,   16,   98,   40,  100,  100,    0,    0,     
+  278,20261020,   17,   85,   40,   70,   90,    0,    0,     
+  278,20261020,   18,   79,   30,   60,   90,    0,    0,     
+  278,20261020,   19,   82,  === daggegevens daily CORS check
+HTTP/2 200 
+date: Fri, 23 Oct 2026 07:30:52 GMT
+content-type: text/html; charset=utf-8
+content-length: 0
+access-control-allow-origin: *
+access-control-allow-methods: POST
+access-control-expose-headers: 
+access-control-max-age: 7200
+x-frame-options: SAMEORIGIN
+x-xss-protection: 1; mode=block
+x-content-type-options: nosniff
+x-download-options: noopen
+x-permitted-cross-domain-policies: none
+referrer-policy: strict-origin-when-cross-origin
+link: </assets/application-678c978630464f4732c2f110d983db44cda0f016e4c077cf2b467224cf3e9013.css>; rel=preload; as=style; nopush,</assets/application-f2576fa522811f09c8a30bfdfde0c1ff2ed8bd07af996f8d5d598c6d81213fe4.js>; rel=preload; as=script; nopush
+=== raw github cors
+HTTP/2 200 
+cache-control: max-age=300
+content-security-policy: default-src 'none'; style-src 'unsafe-inline'; sandbox
+content-type: text/plain; charset=utf-8
+etag: "f01e5082a76d09a7352eeb18688dd183f8ba410761ae57891255d7b313d59328"
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-frame-options: deny
+x-xss-protection: 1; mode=block
+x-github-request-id: F662:25275D:AD10B:F3233:6ADB0D2C
+x-github-edge-region: iad
+accept-ranges: bytes
+=== opendata list again (rate limit?)
 {
     "error": "Rate Limit Exceeded"
 }
 HTTP 429
-=== buienradar
-HTTP 200
-{'$id': '14', 'stationid': 6278, 'stationname': 'Meetstation Heino', 'lat': 52.43, 'lon': 6.27, 'regio': 'Zwolle', 'timestamp': '2026-10-23T09:10:00', 'weatherdescription': 'Zwaar bewolkt en regen', 'iconurl': 'https://cdn.buienradar.nl/resources/images/icons/weather/30x30/q.png', 'fullIconUrl': 'https://cdn.buienradar.nl/resources/images/icons/weather/96x96/Q.png', 'graphUrl': 'https://www.buienradar.nl/nederland/weerbericht/weergrafieken/q', 'winddirection': 'ZO', 'temperature': 10.8, 'groundtemperature': 10.6, 'feeltemperature': 8.9, 'windgusts': 7.6, 'windspeed': 4.2, 'windspeedBft': 3, 'humidity': 95.0, 'precipitation': 0.7, 'sunpower': 7.0, 'rainFallLast24Hour': 10.5, 'rainFallLastHour': 1.3, 'winddirectiondegrees': 138}
-{'$id': '17', 'stationid': 6279, 'stationname': 'Meetstation Hoogeveen', 'lat': 52.73, 'lon': 6.52, 'regio': 'Hoogeveen', 'timestamp': '2026-10-23T09:10:00', 'weatherdescription': 'Zwaar bewolkt en regen', 'iconurl': 'https://cdn.buienradar.nl/resources/images/icons/weather/30x30/q.png', 'fullIconUrl': 'https://cdn.buienradar.nl/resources/images/icons/weather/96x96/Q.png', 'graphUrl': 'https://www.buienradar.nl/nederland/weerbericht/weergrafieken/q', 'winddirection': 'ZZO', 'airpressure': 1004.9, 'temperature': 10.6, 'groundtemperature': 10.3, 'feeltemperature': 8.4, 'visibility': 12600.0, 'windgusts': 7.2, 'windspeed': 4.8, 'windspeedBft': 3, 'humidity': 97.0, 'precipitation': 2.0, 'sunpower': 5.0, 'rainFallLast24Hour': 4.9, 'rainFallLastHour': 0.8, 'winddirectiondegrees': 152}
-{'$id': '27', 'stationid': 6273, 'stationname': 'Meetstation Marknesse', 'lat': 52.7, 'lon': 5.88, 'regio': 'Noordoostpolder', 'timestamp': '2026-10-23T09:10:00', 'weatherdescription': 'Zwaar bewolkt en regen', 'iconurl': 'https://cdn.buienradar.nl/resources/images/icons/weather/30x30/q.png', 'fullIconUrl': 'https://cdn.buienradar.nl/resources/images/icons/weather/96x96/Q.png', 'graphUrl': 'https://www.buienradar.nl/nederland/weerbericht/weergrafieken/q', 'winddirection': 'ZO', 'temperature': 11.0, 'groundtemperature': 10.7, 'feeltemperature': 8.3, 'visibility': 17100.0, 'windgusts': 10.6, 'windspeed': 6.8, 'windspeedBft': 4, 'humidity': 94.0, 'precipitation': 0.9, 'sunpower': 5.0, 'rainFallLast24Hour': 7.6, 'rainFallLastHour': 0.5, 'winddirectiondegrees': 141}
-=== previous runs
-{"latitude":52.5,"longitude":6.5,"generationtime_ms":0.053882598876953125,"utc_offset_seconds":0,"timezone":"GMT","timezone_abbreviation":"GMT","elevation":6.0,"hourly_units":{"time":"iso8601","temperature_2m":"°C","temperature_2m_previous_day1":"°C","temperature_2m_previous_day5":"°C"},"hourly":{"time":["2026-10-22T00:00","2026-10-22T01:00","2026-10-22T02:00","2026-10-22T03:00","2026-10-22T04:00","2026-10-22T05:00","2026-10-22T06:00","2026-10-22T07:00","2026-10-22T08:00","2026-10-22T09:00","2026-10-22T10:00","2026-10-22T11:00","2026-10-22T12:00","2026-10-22T13:00","2026-10-22T14:00","2026-10-22T15:00","2026-10-22T16:00","2026-10-22T17:00","2026-10-22T18:00","2026-10-22T19:00","2026-10-22T20:00","2026-10-22T21:00","2026-10-22T22:00","2026-10-22T23:00","2026-10-23T00:00","2026-10-23T01:0
