@@ -1,5 +1,5 @@
 {
- "checked": "2026-10-22T22:30:22.744Z",
+ "checked": "2026-10-23T01:39:57.536Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
@@ -15,9 +15,9 @@
   },
   "gefs": {
    "id": "gfs025",
-   "run": "2026-10-22T12:00Z",
+   "run": "2026-10-22T18:00Z",
    "estimated": true,
-   "fetched": "2026-10-22T22:30:25.190Z"
+   "fetched": "2026-10-23T01:39:59.494Z"
   },
   "gem": {
    "id": "gem_global",
