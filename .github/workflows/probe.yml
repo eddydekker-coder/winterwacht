@@ -2,14 +2,19 @@ name: probe
 on:
   push:
     branches: [obs-probe]
+    paths: [".github/workflows/probe.yml"]
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: probe
         env:
           K: eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjUzYTg1ZDBhMmQ5YzRkYzJiYWNlNzQ4NTQ2Zjk4ODExIiwiaCI6Im11cm11cjEyOCJ9
         run: |
+          exec > probe-out.txt 2>&1
           EDR=https://api.dataplatform.knmi.nl/edr/v1/collections/10-minute-in-situ-meteorological-observations
           echo "=== EDR locations"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" -H "Authorization: $K" "$EDR/locations" | head -c 1500
           echo; echo "=== EDR locations grep"; curl -sS -m 30 -H "Authorization: $K" "$EDR/locations" | python3 -c "
@@ -28,3 +33,10 @@ jobs:
               if any(x in s['stationname'] for x in ('Heino','Hoogeveen','Twenthe','Marknesse','Deelen')): print(s)
           " || true
           echo "=== previous runs"; curl -sS -m 30 -w "\nHTTP %{http_code}\n" "https://previous-runs-api.open-meteo.com/v1/forecast?latitude=52.5214&longitude=6.4208&hourly=temperature_2m,temperature_2m_previous_day1,temperature_2m_previous_day5&models=ecmwf_aifs025&past_days=1&forecast_days=1&timezone=UTC" | head -c 800
+
+      - name: save
+        if: always()
+        run: |
+          git config user.name bot; git config user.email bot@users.noreply.github.com
+          mkdir -p probe && cp probe-out.txt probe/out.txt
+          git add -f probe/out.txt && git commit -qm "probe output" && git push
