@@ -1,42 +1,42 @@
 {
- "checked": "2026-10-23T18:30:37.764Z",
+ "checked": "2026-10-23T22:24:01.206Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
-   "run": "2026-10-23T06:00Z",
+   "run": "2026-10-23T12:00Z",
    "estimated": false,
-   "fetched": "2026-10-23T18:30:38.878Z"
+   "fetched": "2026-10-23T22:24:02.133Z"
   },
   "ifs": {
    "id": "ecmwf_ifs025",
    "run": "2026-10-23T06:00Z",
    "estimated": false,
-   "fetched": "2026-10-23T18:30:39.209Z"
+   "fetched": "2026-10-23T22:24:02.455Z"
   },
   "gefs": {
    "id": "gfs025",
-   "run": "2026-10-23T06:00Z",
+   "run": "2026-10-23T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-23T18:30:40.251Z"
+   "fetched": "2026-10-23T22:24:03.450Z"
   },
   "gem": {
    "id": "gem_global",
-   "run": "2026-10-23T00:00Z",
+   "run": "2026-10-23T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-23T07:43:33.836Z"
+   "fetched": "2026-10-23T22:24:04.025Z"
   },
   "icon": {
    "id": "icon_seamless_eps",
-   "run": "2026-10-23T06:00Z",
+   "run": "2026-10-23T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-23T18:30:41.033Z"
+   "fetched": "2026-10-23T22:24:04.596Z"
   }
  },
  "long": {
   "ec46": {
    "id": "ecmwf_ec46",
    "issued": "2026-10-19",
-   "fetched": "2026-10-22T22:30:27.731Z"
+   "fetched": "2026-10-23T22:24:05.921Z"
   },
   "seas": {
    "id": "ecmwf_seas5",
