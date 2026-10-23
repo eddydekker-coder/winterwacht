@@ -59,8 +59,24 @@ OWN_KEY = KEY != ANON_KEY
 T_START = time.time()
 
 
+LOG = []
+
+
 def log(*a):
-    print(time.strftime('%H:%M:%S'), *a, flush=True)
+    line = time.strftime('%H:%M:%S ') + ' '.join(str(x) for x in a)
+    LOG.append(line)
+    print(line, flush=True)
+
+
+def write_log():
+    # laatste run altijd meepubliceren: handig om te zien waarom er (nog) niets binnenkomt
+    try:
+        os.makedirs(OUT, exist_ok=True)
+        with open(os.path.join(OUT, 'last-run.txt'), 'w', encoding='utf-8') as f:
+            f.write(dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ') + '\n' + '\n'.join(LOG[-60:]) + '\n')
+        open(os.path.join(OUT, '.updated'), 'w').close()
+    except Exception:
+        pass
 
 
 def over_budget():
@@ -272,7 +288,8 @@ def main():
 
 if __name__ == '__main__':
     try:
-        sys.exit(main())
+        main()
     except Exception as e:  # nooit de hele workflow laten falen op een tijdelijke KNMI-storing
         log('onverwachte fout:', repr(e))
-        sys.exit(0)
+    write_log()
+    sys.exit(0)
