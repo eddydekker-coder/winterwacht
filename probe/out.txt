@@ -1,59 +1,15 @@
-Fri Oct 23 07:36:05 UTC 2026
-=== https://observations.buienradar.nl/1.0/actual/weatherstation/10min/6278
-HTTP/2 404 
-access-control-allow-origin: *
-
-=== https://observations.buienradar.nl/1.0/actual/weatherstation/6278
-HTTP/2 200 
-content-type: application/json; charset=utf-8
-access-control-allow-origin: *
-{"stationid":6278,"stationname":"Meetstation Heino","lat":52.43333,"lon":6.26667,"regio":"Zwolle","timestamp":"2026-10-23T09:30:00","iconcode":"q","winddirection":"ZO","temperature":10.8,"groundtemperature":10.6,"feeltemperature":8.7,"windgusts":7.5,"windspeed":4.6,"windspeedBft":3,"humidity":94.0,"precipitation":0.1,"precipation":0.1,"precipitationmm":0.1,"sunpower":32.0,"rainFallLast24Hour":10.6,"rainFallLastHour":0.8,"winddirectiondegrees":135}
-=== https://graphdata.buienradar.nl/2.0/forecast/geo/RainHistoryForecast?lat=52.52&lon=6.42
-HTTP/2 200 
-content-type: application/json; charset=utf-8
-access-control-allow-origin: *
-{"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":1,"forecasts":[{"datetime":"2026-10-23T09:15:00","utcdatetime":"2026-10-23T07:15:00","precipitation":1.3,"precipation":1.3,"original":26,"value":26},{"datetime":"2026-10-23T09:20:00","utcdatetime":"2026-10-23T07:20:00","precipitation":1.0,"precipation":1.0,"original":20,"value":20},{"datetime":"2026-10-23T09:25:00","utcdatetime":"2026-10-23T07:25:00","precipitation":1.3,"precipation":1.3,"original":26,"value":26},{"datetime":"2026-10-23T09:40:00","utcdatetime":"2026-10-23T07:40:00","precipitatio
-=== https://graphdata.buienradar.nl/2.0/forecast/geo/RainHistory?lat=52.52&lon=6.42
-HTTP/2 200 
-content-type: application/json; charset=utf-8
-access-control-allow-origin: *
-{"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":1,"forecasts":[{"datetime":"2026-10-23T09:40:00","utcdatetime":"2026-10-23T07:40:00","precipitation":0.1,"precipation":0.1,"original":2,"value":2},{"datetime":"2026-10-23T09:45:00","utcdatetime":"2026-10-23T07:45:00","precipitation":0.0,"precipation":0.0,"original":0,"value":0},{"datetime":"2026-10-23T09:50:00","utcdatetime":"2026-10-23T07:50:00","precipitation":0.0,"precipation":0.0,"original":0,"value":0},{"datetime":"2026-10-23T09:55:00","utcdatetime":"2026-10-23T07:55:00","precipitation":0.0
-=== https://gpsgadget.buienradar.nl/data/raintext?lat=52.52&lon=6.42
-HTTP/2 200 
-content-type: text/plain
-access-control-allow-origin: *
-077|09:40
-000|09:45
-000|09:50
-000|09:55
-000|10:00
-000|10:05
-000|10:10
-000|10:15
-000|10:20
-000|10:25
-000|10:30
-000|10:35
-000|10:40
-087|10:45
-000|10:50
-077|10:55
-087|11:00
-096|11:05
-104|11:10
-102|11:15
-087|11:20
-077|11:25
-000|11:30
-000|11:35
-
-=== https://graphdata.buienradar.nl/3.0/forecast/geo/RainHistoryForecast?lat=52.52&lon=6.42
-HTTP/2 200 
-content-type: application/json; charset=utf-8
-access-control-allow-origin: *
-{"borders":[{"title":"Licht","percentageValue":25.0},{"title":"Matig","percentageValue":50.0},{"title":"Zwaar","percentageValue":75.0}],"fillColor":"#5A9BD3","baselinePercentageValue":0.0,"unit":"mm/u","forecasts":[{"dateTime":"2026-10-23T09:25:00","utcDateTime":"2026-10-23T07:25:00","dataValue":1.3,"percentageValue":26.0,"color":"#e4e5ff"},{"dateTime":"2026-10-23T09:30:00","utcDateTime":"2026-10-23T07:30:00","dataValue":0.6,"percentageValue":12.0,"color":"#e4e5ff"},{"dateTime":"2026-10-23T09:35:00","utcDateTime":"2026-10-23T07:35:00","dataValue":0.3,"percentageValue":6.0,"color":"#e4e5ff"},{"dateTime":"2026-10-23T09:40:00","utcDateTime":"2026-10-23T07:40:00","dataValue":0.1,"percentageValue
-=== https://graphdata.buienradar.nl/2.0/forecast/geo/Temperature12Hours?lat=52.52&lon=6.42
-HTTP/2 200 
-content-type: application/json; charset=utf-8
-access-control-allow-origin: *
-{"color":"#5A9BD3","lat":52.52,"lon":6.42,"borders":[{"title":"licht","lower":0,"upper":40},{"title":"matig","lower":40,"upper":70},{"title":"zwaar","lower":70,"upper":100}],"timeOffset":2.0,"radius":1,"forecasts":[{"datetime":"2026-10-23T09:40:00","utcdatetime":"2026-10-23T07:40:00","precipitation":0.1,"precipation":0.1,"original":2,"value":2},{"datetime":"2026-10-23T09:45:00","utcdatetime":"2026-10-23T07:45:00","precipitation":0.0,"precipation":0.0,"original":0,"value":0},{"datetime":"2026-10-23T09:50:00","utcdatetime":"2026-10-23T07:50:00","precipitation":0.0,"precipation":0.0,"original":0,"value":0},{"datetime":"2026-10-23T09:55:00","utcdatetime":"2026-10-23T07:55:00","precipitation":0.0
+Fri Oct 23 07:36:56 UTC 2026
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "/usr/lib/python3.12/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/json/decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
