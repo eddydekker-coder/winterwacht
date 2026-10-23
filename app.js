@@ -2,19 +2,20 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN,
-} from './lib/stats.js?v=19';
+} from './lib/stats.js?v=20';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=19';
+} from './lib/longrange.js?v=20';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=19';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=19';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=19';
-import { outlook } from './lib/outlook.js?v=19';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=19';
-import { initMaps } from './lib/maps.js?v=19';
-import { initGame } from './lib/game.js?v=19';
+} from './lib/hourly.js?v=20';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=20';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=20';
+import { outlook } from './lib/outlook.js?v=20';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=20';
+import { initMaps } from './lib/maps.js?v=20';
+import { initGame } from './lib/game.js?v=20';
+import { initObs } from './lib/obs.js?v=20';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -1014,12 +1015,22 @@ function plumeFor(mapModel, day) {
 }
 let maps = null;
 let game = null;
-function showView(v) {
-  if (!['now', '5', '14', '90', 'maps', 'game'].includes(v)) v = 'now';
+let obs = null;
+// Volgorde van de tabbladen: ook de volgorde waarin je veegt.
+const VIEWS = ['now', 'obs', '5', '14', '90', 'maps', 'game'];
+function showView(v, dir = 0) {
+  if (!VIEWS.includes(v)) v = 'now';
   state.view = v; store.set('ww.view', v);
-  for (const k of ['now', '5', '14', '90', 'maps', 'game']) {
+  for (const k of VIEWS) {
     $(`tab-${k}`).setAttribute('aria-selected', v === k);
     $(`view-${k}`).hidden = v !== k;
+  }
+  $(`tab-${v}`).scrollIntoView?.({ inline: 'center', block: 'nearest' });
+  if (dir) {
+    const m = document.querySelector('main');
+    m.classList.remove('slide-l', 'slide-r');
+    void m.offsetWidth; // animatie opnieuw starten
+    m.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
   }
   if (v !== '14') stopRunFilm();
   if (v === 'now') radarResize();
@@ -1027,8 +1038,47 @@ function showView(v) {
   if (v === '14') renderDay14();
   if (v === '90') renderWinter();
   maps?.show(v === 'maps');
+  obs?.show(v === 'obs');
   document.body.classList.toggle('ingame', v === 'game');
   game?.show(v === 'game');
+}
+
+// ---------- vegen tussen tabbladen (telefoon) ----------
+// Vegen op lijsten, kaarten, tabellen, schuifbalken en het spel blijft gewoon dat gebruiken.
+const NO_SWIPE = '.hscroll, .rmap, .leaflet-container, canvas, input, select, textarea, .tablewrap, .modelpick, .hdays, .gamewrap, .mapcmp, .mapopts, dialog, [data-noswipe]';
+function goRelative(delta) {
+  const i = VIEWS.indexOf(state.view) + delta;
+  if (i < 0 || i >= VIEWS.length) return false;
+  showView(VIEWS[i], delta);
+  window.scrollTo(0, 0);
+  return true;
+}
+function initSwipe() {
+  let t0 = null;
+  const reset = () => { t0 = null; };
+  document.addEventListener('touchstart', (e) => {
+    t0 = null;
+    if (e.touches.length !== 1 || document.querySelector('dialog[open]')) return;
+    const t = e.touches[0];
+    // de randen laten we vrij voor het systeem (terug-gebaar van Safari)
+    if (t.clientX < 24 || t.clientX > window.innerWidth - 24) return;
+    if (e.target.closest?.(NO_SWIPE)) return;
+    t0 = { x: t.clientX, y: t.clientY, at: Date.now() };
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!t0) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - t0.x, dy = t.clientY - t0.y, dt = Date.now() - t0.at;
+    t0 = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < 1.8 * Math.abs(dy) || dt > 900) return;
+    goRelative(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  document.addEventListener('touchcancel', reset, { passive: true });
+  // toetsenbord: pijltjes links/rechts op de tabbalk
+  document.querySelector('.tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (goRelative(e.key === 'ArrowRight' ? 1 : -1)) { $(`tab-${state.view}`).focus(); e.preventDefault(); }
+  });
 }
 
 async function refresh() {
@@ -1048,6 +1098,7 @@ async function refresh() {
   if (state.view === '14') renderDay14();
   if (state.view === '90') renderWinter();
   maps?.refresh();
+  if (state.view === 'obs') obs?.refresh();
   $('stamp').textContent = `Bijgewerkt ${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
   state.lastRefresh = Date.now();
 }
@@ -1055,6 +1106,7 @@ async function refresh() {
 function init() {
   $('placeName').textContent = state.loc.name;
   $('tab-now').addEventListener('click', () => showView('now'));
+  $('tab-obs').addEventListener('click', () => showView('obs'));
   $('tab-5').addEventListener('click', () => showView('5'));
   $('tab-14').addEventListener('click', () => showView('14'));
   $('tab-90').addEventListener('click', () => showView('90'));
@@ -1064,6 +1116,15 @@ function init() {
     canvas: $('gameCanvas'), wrap: $('gameWrap'), level: $('gameLevel'), score: $('gScore'), clear: $('gClear'), time: $('gTime'), timeLabel: $('gTimeLabel'),
     pause: $('gPause'), reset: $('gReset'), mode: $('gMode'), over: $('gOver'), overTitle: $('gOverTitle'), overText: $('gOverText'), overBtn: $('gOverBtn'), hint: $('gHint'),
   });
+  obs = initObs({
+    head: $('obsHead'), headSub: $('obsHeadSub'), tiles: $('obsTiles'), stations: $('obsStations'), status: $('obsStatus'), farMsg: $('obsFar'), main: $('obsMain'),
+    subBtns: [...$('obsSubs').querySelectorAll('button')], periodBtns: [...$('obsPeriods').querySelectorAll('button')],
+    methodBtns: [...document.querySelectorAll('.omethod button')], checkBtns: [...$('obsCheckPeriods').querySelectorAll('button')],
+    panels: { trace: $('obsPanelTrace'), rain: $('obsPanelRain'), check: $('obsPanelCheck') },
+    chart: $('obsChart'), read: $('obsRead'), rainTable: $('obsRainTable'), rainCurve: $('obsRainCurve'), rainDays: $('obsRainDays'), rainNote: $('obsRainNote'),
+    checkBody: $('obsCheckBody'), src: $('obsSrc'),
+  }, () => state.loc);
+  initSwipe();
   maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet'), cmp: $('mapCmp') }, () => state.loc, plumeFor);
   $('modelPick').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;

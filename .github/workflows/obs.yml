@@ -1,0 +1,49 @@
+name: Waarnemingen ophalen (KNMI)
+
+on:
+  schedule:
+    # Elke 10 minuten, een paar minuten na het hele 10-minutenmoment (KNMI publiceert ~3-4 min later).
+    - cron: '4-59/10 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: obs-data
+  cancel-in-progress: false
+
+jobs:
+  obs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Vorig archief ophalen (tak obs-data)
+        run: |
+          git clone --quiet --depth 1 --branch obs-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-out || mkdir -p obs-out
+      - name: KNMI-waarnemingen ophalen
+        env:
+          # Optioneel: eigen gratis KNMI-sleutel als secret KNMI_API_KEY. Zonder gebruikt het script de openbare sleutel.
+          KNMI_API_KEY: ${{ secrets.KNMI_API_KEY }}
+        run: |
+          pip install --quiet netCDF4 numpy
+          OBS_OUT="$PWD/obs-out" python scripts/obs.py
+      - name: Publiceren (tak obs-data, steeds één commit)
+        run: |
+          cd obs-out
+          if [ -f .updated ]; then
+            rm -f .updated
+            rm -rf .git
+            git init --quiet -b obs-data
+            git config user.name "winterwacht-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A
+            git commit --quiet -m "Waarnemingen $(date -u +'%Y-%m-%d %H:%MZ')"
+            git push --quiet --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-data
+          else
+            echo "Geen nieuwe waarnemingen."
+          fi

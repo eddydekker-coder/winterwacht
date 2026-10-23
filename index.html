@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -33,6 +33,7 @@
 
   <nav class="tabs" role="tablist" aria-label="Verwachtingslaag">
     <button role="tab" id="tab-now" aria-selected="true" aria-controls="view-now">Nu</button>
+    <button role="tab" id="tab-obs" aria-selected="false" aria-controls="view-obs">Gemeten</button>
     <button role="tab" id="tab-5" aria-selected="false" aria-controls="view-5">5 dagen</button>
     <button role="tab" id="tab-14" aria-selected="false" aria-controls="view-14">Lange termijn</button>
     <button role="tab" id="tab-90" aria-selected="false" aria-controls="view-90">Winter</button>
@@ -89,6 +90,64 @@
         </div>
         <p class="note err" id="radarStatus" aria-live="polite"></p>
       </section>
+    </section>
+
+    <!-- TAB GEMETEN -->
+    <section id="view-obs" role="tabpanel" aria-labelledby="tab-obs" hidden>
+      <div class="verdict">
+        <h1 id="obsHead">De waarnemingen worden opgehaald…</h1>
+        <p id="obsHeadSub"></p>
+      </div>
+      <p class="note err" id="obsFar" hidden></p>
+      <div id="obsMain">
+        <div class="otiles" id="obsTiles"></div>
+        <div id="obsStations"></div>
+        <div class="omethod" role="radiogroup" aria-label="Schatting uit">
+          <span>Schatting uit</span>
+          <button role="radio" aria-checked="true" data-m="two">Heino + Hoogeveen</button>
+          <button role="radio" aria-checked="false" data-m="four">Vier stations</button>
+        </div>
+        <div id="obsStatus"></div>
+
+        <div class="modelpick osubtabs" role="tablist" aria-label="Onderdeel" id="obsSubs">
+          <button role="tab" data-s="trace" aria-selected="true">Verloop</button>
+          <button role="tab" data-s="rain" aria-selected="false">Neerslag</button>
+          <button role="tab" data-s="check" aria-selected="false">Modelcheck</button>
+        </div>
+
+        <div id="obsPanelTrace">
+          <div class="modelpick small" role="radiogroup" aria-label="Periode" id="obsPeriods">
+            <button role="radio" aria-checked="true" data-p="24h">24 uur</button>
+            <button role="radio" aria-checked="false" data-p="3d">3 dagen</button>
+            <button role="radio" aria-checked="false" data-p="7d">7 dagen</button>
+            <button role="radio" aria-checked="false" data-p="14d">14 dagen</button>
+          </div>
+          <p class="oread" id="obsRead" aria-live="polite"></p>
+          <figure class="ochart" id="obsChart"></figure>
+          <p class="note">Temperatuur, wind (vlak = gemiddeld, stippellijn = stoten, pijltjes = waarheen de wind waait) en neerslag per 10 minuten, of per uur bij 7 en 14 dagen. De stippellijnen markeren 4, 6 en 8 Bft.</p>
+        </div>
+
+        <div id="obsPanelRain" hidden>
+          <h2 class="h2">Gevallen neerslag</h2>
+          <div id="obsRainTable"></div>
+          <h2 class="h2">Hoeveel is er sinds…</h2>
+          <p class="note">De lijn laat zien hoeveel neerslag er sinds elk moment is gevallen; de stippen markeren de laatste 3, 6, 9 en 12 uur.</p>
+          <figure class="ochart" id="obsRainCurve"></figure>
+          <h2 class="h2">Per datum</h2>
+          <div id="obsRainDays"></div>
+          <p class="note" id="obsRainNote"></p>
+        </div>
+
+        <div id="obsPanelCheck" hidden>
+          <div class="modelpick small" role="radiogroup" aria-label="Periode" id="obsCheckPeriods">
+            <button role="radio" aria-checked="false" data-n="7">7 dagen</button>
+            <button role="radio" aria-checked="true" data-n="14">14 dagen</button>
+            <button role="radio" aria-checked="false" data-n="30">30 dagen</button>
+          </div>
+          <div id="obsCheckBody"></div>
+        </div>
+        <p class="note" id="obsSrc"></p>
+      </div>
     </section>
 
     <!-- TAB 5 DAGEN -->
@@ -287,6 +346,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=19"></script>
+  <script type="module" src="app.js?v=20"></script>
 </body>
 </html>
