@@ -1,13 +1,17 @@
 name: Waarnemingen ophalen (KNMI)
 
+# GitHub voert geplande taken ('cron') op deze repo maar zelden en met uren vertraging uit.
+# Daarom blijft één run ruim 5 uur doorlopen en haalt elke 5 minuten nieuwe waarnemingen op;
+# aan het eind start hij zichzelf opnieuw (workflow_dispatch met het ingebouwde token mag dat wel).
+# Het schema hieronder is alleen de terugvaloptie als de keten ooit breekt.
 on:
   schedule:
-    # Elke 10 minuten, een paar minuten na het hele 10-minutenmoment (KNMI publiceert ~3-4 min later).
     - cron: '4-59/10 * * * *'
   workflow_dispatch: {}
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: obs-data
@@ -16,7 +20,7 @@ concurrency:
 jobs:
   obs:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 345
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,25 +29,28 @@ jobs:
       - name: Vorig archief ophalen (tak obs-data)
         run: |
           git clone --quiet --depth 1 --branch obs-data "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-out || mkdir -p obs-out
-      - name: KNMI-waarnemingen ophalen
+          pip install --quiet netCDF4 numpy
+      - name: Lus - elke 5 minuten ophalen en publiceren
         env:
           # Optioneel: eigen gratis KNMI-sleutel als secret KNMI_API_KEY. Zonder gebruikt het script de openbare sleutel.
           KNMI_API_KEY: ${{ secrets.KNMI_API_KEY }}
+          OBS_BUDGET_S: '240'
         run: |
-          pip install --quiet netCDF4 numpy
-          OBS_OUT="$PWD/obs-out" python scripts/obs.py
-      - name: Publiceren (tak obs-data, steeds één commit)
-        run: |
-          cd obs-out
-          if [ -f .updated ]; then
-            rm -f .updated
-            rm -rf .git
-            git init --quiet -b obs-data
-            git config user.name "winterwacht-bot"
-            git config user.email "actions@users.noreply.github.com"
-            git add -A
-            git commit --quiet -m "Waarnemingen $(date -u +'%Y-%m-%d %H:%MZ')"
-            git push --quiet --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" obs-data
-          else
-            echo "Geen nieuwe waarnemingen."
-          fi
+          URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          END=$(( $(date +%s) + 335*60 ))
+          while [ "$(date +%s)" -lt "$END" ]; do
+            OBS_OUT="$PWD/obs-out" python scripts/obs.py || true
+            if [ -f obs-out/.updated ]; then
+              rm -f obs-out/.updated
+              rm -rf pub && mkdir pub && cp -r obs-out/. pub/
+              ( cd pub && git init --quiet -b obs-data && git config user.name "winterwacht-bot" && git config user.email "actions@users.noreply.github.com" \
+                && git add -A && git commit --quiet -m "Waarnemingen $(date -u +'%Y-%m-%d %H:%MZ')" \
+                && git push --quiet --force "$URL" obs-data ) || echo "publiceren mislukt, volgende ronde opnieuw"
+            fi
+            sleep 300
+          done
+      - name: Zichzelf opnieuw starten
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run obs.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}" || echo "herstart mislukt; het schema vangt dit op"
