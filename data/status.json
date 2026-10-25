@@ -1,11 +1,11 @@
 {
- "checked": "2026-10-25T19:46:48.492Z",
+ "checked": "2026-10-25T22:40:11.932Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
-   "run": "2026-10-25T06:00Z",
+   "run": "2026-10-25T12:00Z",
    "estimated": false,
-   "fetched": "2026-10-25T17:06:39.370Z"
+   "fetched": "2026-10-25T22:40:12.825Z"
   },
   "ifs": {
    "id": "ecmwf_ifs025",
@@ -27,16 +27,16 @@
   },
   "icon": {
    "id": "icon_seamless_eps",
-   "run": "2026-10-25T06:00Z",
+   "run": "2026-10-25T12:00Z",
    "estimated": true,
-   "fetched": "2026-10-25T17:06:40.858Z"
+   "fetched": "2026-10-25T22:40:14.327Z"
   }
  },
  "long": {
   "ec46": {
    "id": "ecmwf_ec46",
    "issued": "2026-10-19",
-   "fetched": "2026-10-24T22:35:25.591Z"
+   "fetched": "2026-10-25T22:40:15.685Z"
   },
   "seas": {
    "id": "ecmwf_seas5",
