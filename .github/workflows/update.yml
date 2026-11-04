@@ -51,6 +51,12 @@ jobs:
           else
             echo "Geen nieuwe kaartruns."
           fi
+      - name: Stratosfeerwind ophalen (poolwervel, GFS en ECMWF)
+        # Mag falen zonder de rest te blokkeren; bewaart data/strat.json en wordt hieronder meegecommit.
+        continue-on-error: true
+        run: |
+          pip install --quiet numpy eccodes ecmwf-opendata
+          python scripts/strat.py
       - name: Waarnemingen ophalen (KNMI, extra aanloop naast obs.yml)
         # GitHub voert schema's van elke 10 minuten vaak met uren vertraging uit; dit uurlijkse schema is betrouwbaarder.
         continue-on-error: true

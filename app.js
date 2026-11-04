@@ -2,20 +2,21 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN, mergeEnsembleDays, GAP_POINTS,
-} from './lib/stats.js?v=21';
+} from './lib/stats.js?v=22';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=21';
+} from './lib/longrange.js?v=22';
 import {
-  HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=21';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=21';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=21';
-import { outlook } from './lib/outlook.js?v=21';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=21';
-import { initMaps } from './lib/maps.js?v=21';
-import { initGame } from './lib/game.js?v=21';
-import { initObs } from './lib/obs.js?v=21';
+  HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, HOURLY_ENS_EC, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
+} from './lib/hourly.js?v=22';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=22';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=22';
+import { outlook } from './lib/outlook.js?v=22';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=22';
+import { initMaps } from './lib/maps.js?v=22';
+import { initGame } from './lib/game.js?v=22';
+import { initObs } from './lib/obs.js?v=22';
+import { initStrat } from './lib/strat.js?v=22';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -102,6 +103,7 @@ async function loadConfigAndHistory() {
     try { state.longArchive = await getJSON(`data/longrange/${match.id}.json?t=${Date.now()}`); } catch { /* nog geen archief */ }
   }
   try { state.status = await getJSON(`data/status.json?t=${Date.now()}`); } catch { state.status = null; }
+  try { state.strat = await getJSON(`data/strat.json?t=${Date.now()}`); } catch { state.strat = null; }
 }
 
 function distKm(a, b) {
@@ -283,11 +285,17 @@ async function fetchHourly(loc) {
     }
     return null;
   };
-  const [knmi, ecmwf, ens] = await Promise.all([tryModel(HOURLY_MODELS.knmi.ids, API), tryModel(HOURLY_MODELS.ecmwf.ids, API), tryEns()]);
+  const tryEnsEc = async () => {
+    for (const id of HOURLY_ENS_EC.ids) {
+      try { return await getJSON(`${ENS}?${base}&hourly=precipitation,snowfall&models=${id}`); } catch (e) { if (e.status !== 400) return null; }
+    }
+    return null;
+  };
+  const [knmi, ecmwf, ens, ensEc] = await Promise.all([tryModel(HOURLY_MODELS.knmi.ids, API), tryModel(HOURLY_MODELS.ecmwf.ids, API), tryEns(), tryEnsEc()]);
   const ref = knmi || ecmwf;
   if (!ref) return null;
   const nowKey = localHourKey(Date.now(), ref.utc_offset_seconds ?? 0);
-  return { steps: buildSteps({ knmi: knmi?.hourly, ecmwf: ecmwf?.hourly, ens: ens?.hourly, nowKey }), hasEns: !!ens, hasKnmi: !!knmi, hasEcmwf: !!ecmwf };
+  return { steps: buildSteps({ knmi: knmi?.hourly, ecmwf: ecmwf?.hourly, ens: ens?.hourly, ensEc: ensEc?.hourly, nowKey }), hasEns: !!ens, hasEnsEc: !!ensEc, hasKnmi: !!knmi, hasEcmwf: !!ecmwf };
 }
 
 // Weericoon per uur, met maan 's nachts en natte sneeuw/ijzel apart
@@ -390,7 +398,8 @@ function hourDetail(s) {
   const rows = [];
   rows.push(['Temperatuur', `${deg(s.t)} <small>gevoel ${deg(s.feel)} · dauwpunt ${deg(s.td)}</small>`]);
   const pr = s.precip >= 0.05 ? `${nl(s.precip.toFixed(1))} mm ${s.ptype || ''}` : 'droog';
-  const probs = [s.pop != null ? `kans ${s.pop}%` : null, s.pSnow != null && s.pSnow >= 10 ? `sneeuwkans ${s.pSnow}%` : null].filter(Boolean).join(' · ');
+  const altTxt = (a, b, lead) => (a != null && b != null ? ` (${lead === 'ec' ? 'ICON' : 'ECMWF'} ${b}%)` : '');
+  const probs = [s.pop != null ? `kans ${s.pop}%${altTxt(s.pop, s.popLead === 'ec' ? s.popIcon : s.popEc, s.popLead)}` : null, s.pSnow != null && s.pSnow >= 10 ? `sneeuwkans ${s.pSnow}%` : null].filter(Boolean).join(' · ');
   rows.push(['Neerslag', `${pr}${s.ptype === 'sneeuw' && s.snow >= 0.1 ? ` (${nl(s.snow.toFixed(1))} cm)` : ''} <small>${period}${probs ? ` · ${probs}` : ''}</small>`]);
   rows.push(['Wind', `${compass(s.dir)} ${s.bft ?? '–'} Bft <small>${s.wind ?? '–'} km/u${s.gust != null ? ` · stoten ${s.gust} km/u` : ''}</small>`]);
   const extra = [];
@@ -414,7 +423,7 @@ function hourTable(steps) {
     return `${newDay ? `<tr class="dsep"><td colspan="5"><span>${dLong(s.date)}</span></td></tr>` : ''}<tr data-i="${i}" class="${s.isDay === 0 ? 'nt' : ''}${s.t != null && s.t <= 0 ? ' fr' : ''}">
       <th scope="row"><span class="hcell"><span class="hh">${String(s.hour).padStart(2, '0')}</span><svg viewBox="0 0 24 24" aria-hidden="true">${hourIcon(s, 12, 12)}</svg></span></th>
       <td><b class="tnum">${deg(s.t)}</b><small>gev. ${deg(s.feel)}</small></td>
-      <td>${pr}<small>${s.pop != null ? `kans ${s.pop}%` : ''}</small></td>
+      <td>${pr}<small>${s.pop != null ? `kans ${s.pop}%` : ''}${s.popIcon != null && s.popEc != null && Math.abs(s.popIcon - s.popEc) >= 25 ? ` <span class="gapv" title="ICON ${s.popIcon}% · ECMWF ${s.popEc}%">≠</span>` : ''}</small></td>
       <td><b class="tnum"><i class="warr" style="--r:${(s.dir ?? 0) + 180}deg"></i>${s.bft ?? '–'}</b><small>${compass(s.dir)} ${s.wind ?? '–'}${s.gust != null ? ` · ${s.gust}` : ''}</small></td>
       <td class="more"><small>dauwp. ${deg(s.td)}${s.ts != null ? ` · weg ${deg(s.ts)}` : ''}</small><small>zicht ${vis(s.vis)}${s.cloud != null ? ` · ${s.cloud}%` : ''}</small></td>
     </tr>${warn.length ? `<tr class="wrow" data-i="${i}"><td></td><td colspan="4">${warn.map((w) => `<span>${esc(w[0].toUpperCase() + w.slice(1))}</span>`).join('')}</td></tr>` : ''}`;
@@ -425,7 +434,7 @@ function hourTable(steps) {
 // Eén uurstrook-component, twee keer gebruikt: in 'Nu' (tot 06:00 morgenochtend) en in '5 dagen' (alles).
 const HOURLY_NOTE = (res) => {
   const src = [res.hasKnmi ? 'KNMI HARMONIE (2 km) per uur tot 48 uur vooruit' : null, res.hasEcmwf ? 'daarna ECMWF IFS per 3 uur' : null].filter(Boolean).join(', ');
-  return `${src || 'Bron niet volledig beschikbaar'}. Neerslag per uur of per 3 uur; de kans komt uit het ${HOURLY_ENS.label}${res.hasEns ? '' : ' (nu niet beschikbaar)'}. Gevoelstemperatuur bij kou volgens de windchill-formule die ook het KNMI gebruikt. Gladheid op basis van de oppervlaktetemperatuur van het model; geen officiële waarschuwing.`;
+  return `${src || 'Bron niet volledig beschikbaar'}. Neerslag per uur of per 3 uur; de kans komt de eerste 48 uur uit het ${HOURLY_ENS.label} (per uur) en daarna uit het ${HOURLY_ENS_EC.label}${res.hasEns ? '' : ' (ICON nu niet beschikbaar)'}${res.hasEnsEc ? '' : ' (ECMWF nu niet beschikbaar)'}; het andere model staat tussen haakjes bij de uurdetails en een amber ≠ markeert 25 procentpunt verschil. Gevoelstemperatuur bij kou volgens de windchill-formule die ook het KNMI gebruikt. Gladheid op basis van de oppervlaktetemperatuur van het model; geen officiële waarschuwing.`;
 };
 function makeHourly(p, { chips = true } = {}) {
   const el = (k) => $(`${p}${k}`);
@@ -833,6 +842,7 @@ async function renderDay14() {
   setRunFilm(runs, state.filmRuns);
   renderSignals();
   renderBoth();
+  strat?.render();
 }
 
 function renderSignals() {
@@ -1121,6 +1131,7 @@ function plumeFor(mapModel, day) {
 let maps = null;
 let game = null;
 let obs = null;
+let strat = null;
 // Volgorde van de tabbladen: ook de volgorde waarin je veegt.
 const VIEWS = ['now', 'obs', '5', '14', '90', 'maps', 'game'];
 function showView(v, dir = 0) {
@@ -1230,6 +1241,7 @@ function init() {
     chart: $('obsChart'), read: $('obsRead'), rainTable: $('obsRainTable'), rainCurve: $('obsRainCurve'), rainDays: $('obsRainDays'), rainNote: $('obsRainNote'),
     checkBody: $('obsCheckBody'), src: $('obsSrc'),
   }, () => state.loc);
+  strat = initStrat({ box: $('strat'), head: $('stratHead'), chart: $('stratChart'), text: $('stratText'), pick: $('stratPick'), src: $('stratSrc') }, () => state.strat);
   initSwipe();
   maps = initMaps({ models: $('mapModel'), run: $('mapRun'), leads: $('mapLeads'), cards: $('mapCards'), status: $('mapStatus'), opts: $('mapOpts'), guide: $('mapGuide'), sheet: $('termSheet'), cmp: $('mapCmp') }, () => state.loc, plumeFor);
   $('modelPick').addEventListener('click', (e) => {

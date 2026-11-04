@@ -560,3 +560,8 @@ main.slide-r { animation: slide-r 0.22s ease-out; }
 #modelTable .gapv { color: #ffd36b; font-weight: 700; }
 .both { margin-top: 6px; }
 .both[hidden] { display: none; }
+
+/* Stratosfeer */
+.strat { margin-top: 6px; }
+.stratHead { margin: 0 0 8px; font: 600 1.15rem/1.2 var(--font-num); letter-spacing: .01em; }
+.strat .modelpick { padding-top: 4px; }

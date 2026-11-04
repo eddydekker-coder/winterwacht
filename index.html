@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -244,6 +244,18 @@
       <p class="note">Gemiddelde dagtemperatuur van dag 8 tot en met 14, per run. Een dalende lijn betekent dat de modellen steeds kouder worden.</p>
       <figure class="trend" id="trend"></figure>
 
+      <section class="strat" id="strat" aria-labelledby="stratTitle" hidden>
+        <h2 class="h2" id="stratTitle">Stratosfeer en poolwervel</h2>
+        <p class="stratHead" id="stratHead"></p>
+        <div class="modelpick small" role="radiogroup" aria-label="Drukniveau" id="stratPick">
+          <button role="radio" aria-checked="true" data-l="10">10 hPa (±30 km)</button>
+          <button role="radio" aria-checked="false" data-l="50">50 hPa (±20 km)</button>
+        </div>
+        <figure class="trend" id="stratChart"></figure>
+        <p class="note" id="stratText"></p>
+        <p class="note">Zonale wind op 60°N, gemiddeld over alle lengtegraden, in m/s. Onder de nullijn is de westenwind omgeslagen in oostenwind en is de poolwervel omgekeerd. ECMWF levert in de open data geen 10 hPa, daarom staat ECMWF alleen bij 50 hPa. <span id="stratSrc"></span></p>
+      </section>
+
       <h2 class="h2">Openingen naar winterweer</h2>
       <ul class="openings" id="openings"></ul>
       <figure class="signals" id="signals"></figure>
@@ -354,6 +366,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=21"></script>
+  <script type="module" src="app.js?v=22"></script>
 </body>
 </html>
