@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -186,7 +186,7 @@
       <details class="models" id="modelsBox">
         <summary>Per model vergelijken</summary>
         <div class="tablewrap"><table id="modelTable"></table></div>
-        <p class="note">Hoofdlijn: KNMI HARMONIE voor vandaag tot en met overmorgen, daarna ECMWF AIFS. Sneeuw- en vorstkansen komen uit het AIFS-ensemble (51 leden).</p>
+        <p class="note">Hoofdlijn: KNMI HARMONIE voor vandaag tot en met overmorgen, daarna ECMWF AIFS. Sneeuw- en vorstkansen komen uit het AIFS-ensemble (51 leden); het ECMWF IFS-ensemble (51 leden) staat ernaast als “EC”. Verschillen de twee 25 procentpunt of meer, dan kleurt de EC-kans amber en staat dat in de verwachting. AIFS telt dan het zwaarst.</p>
       </details>
     </section>
 
@@ -200,9 +200,17 @@
       </div>
       <figure class="plume" id="plumeT2"></figure>
 
+      <section class="both" id="bothBox" aria-labelledby="bothTitle" hidden>
+        <h2 class="h2" id="bothTitle">AIFS en ECMWF naast elkaar</h2>
+        <p class="note" id="bothNote"></p>
+        <figure class="plume" id="plumeBoth"></figure>
+      </section>
+
       <details class="t850" id="t850Box">
         <summary>T850-pluim <span>temperatuur op ±1,5 km — laat de luchtmassa zien</span></summary>
         <figure class="plume" id="plumeT850"></figure>
+        <p class="note">AIFS en ECMWF samen:</p>
+        <figure class="plume" id="plumeT850Both"></figure>
       </details>
 
       <section class="film" id="film" aria-labelledby="filmTitle">
@@ -346,6 +354,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=20"></script>
+  <script type="module" src="app.js?v=21"></script>
 </body>
 </html>

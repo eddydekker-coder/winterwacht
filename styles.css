@@ -551,3 +551,12 @@ main.slide-r { animation: slide-r 0.22s ease-out; }
 @keyframes slide-l { from { opacity: 0.2; transform: translateX(34px); } to { opacity: 1; transform: none; } }
 @keyframes slide-r { from { opacity: 0.2; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { main.slide-l, main.slide-r { animation: none; } }
+
+/* ECMWF naast AIFS */
+.day .prob .ec { opacity: .85; font-size: 0.64rem; }
+.day .prob .ec.gap { color: #ffd36b; opacity: 1; font-weight: 700; }
+#modelTable .ensbody tr:first-child td { border-top: 1px solid var(--line); }
+#modelTable .ensrow td:first-child { color: var(--ink-soft); }
+#modelTable .gapv { color: #ffd36b; font-weight: 700; }
+.both { margin-top: 6px; }
+.both[hidden] { display: none; }
