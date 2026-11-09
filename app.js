@@ -2,21 +2,21 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN, mergeEnsembleDays, GAP_POINTS,
-} from './lib/stats.js?v=22';
+} from './lib/stats.js?v=23';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=22';
+} from './lib/longrange.js?v=23';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, HOURLY_ENS_EC, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=22';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=22';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=22';
-import { outlook } from './lib/outlook.js?v=22';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=22';
-import { initMaps } from './lib/maps.js?v=22';
-import { initGame } from './lib/game.js?v=22';
-import { initObs } from './lib/obs.js?v=22';
-import { initStrat } from './lib/strat.js?v=22';
+} from './lib/hourly.js?v=23';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=23';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=23';
+import { outlook } from './lib/outlook.js?v=23';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=23';
+import { initMaps } from './lib/maps.js?v=23';
+import { initGame } from './lib/game.js?v=23';
+import { initObs } from './lib/obs.js?v=23';
+import { initStrat } from './lib/strat.js?v=23';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -42,8 +42,14 @@ const state = {
 state.loc = state.home;
 
 // ---------- data ophalen ----------
-async function getJSON(url) {
-  const res = await fetch(url);
+async function getJSON(url, timeoutMs = 25000) {
+  // Een hangend verzoek mag de hele app niet blokkeren
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), timeoutMs);
+  let res;
+  try { res = await fetch(url, { signal: ctl.signal }); } catch (e) {
+    const err = new Error(e.name === 'AbortError' ? 'geen antwoord binnen 25 seconden' : 'geen verbinding'); err.status = 0; throw err;
+  } finally { clearTimeout(to); }
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.error) { const e = new Error(body.reason || `HTTP ${res.status}`); e.status = res.status; throw e; }
   return body;
@@ -53,13 +59,18 @@ async function fetchDeterministic(loc) {
   const base = 'temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code';
   const sets = [`${base},precipitation_hours,wind_gusts_10m_max`, base];
   const out = {};
+  state.detErrors = [];
   await Promise.all(DETERMINISTIC.map(async (m) => {
     for (const id of m.ids) {
       for (const daily of sets) {
         try {
           const d = await getJSON(`${API}?latitude=${loc.lat}&longitude=${loc.lon}&daily=${daily}&models=${id}&forecast_days=6&timezone=${encodeURIComponent(TZ)}`);
+          // Alleen bruikbaar als er echt temperaturen in zitten (AIFS levert sinds okt. 2026 soms lege dagwaarden)
+          if (!d.daily?.temperature_2m_max?.some((v) => v != null)) { state.detErrors.push(`${m.label}: lege dagwaarden`); return; }
           out[m.key] = d.daily; return;
-        } catch (e) { if (e.status !== 400) return; }
+        } catch (e) {
+          if (e.status !== 400) { state.detErrors.push(`${m.label}: ${e.message}`); return; }
+        }
       }
     }
   }));
@@ -189,8 +200,11 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 // ---------- LAAG 1 ----------
 function blendDays(det, ens) {
   const base = det.knmi || det.aifs || det.ifs;
-  if (!base) return [];
-  return base.time.slice(0, 5).map((date, i) => {
+  // Terugval: geen gewone modelverwachting? Dan de datums uit de pluim (AIFS/ECMWF-ensemble).
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: TZ });
+  const dates = base ? base.time : Object.keys(ens || {}).sort().filter((d) => d >= today);
+  if (!dates.length) return [];
+  return dates.slice(0, 5).map((date, i) => {
     const order = i <= 2 ? ['knmi', 'aifs', 'ifs'] : ['aifs', 'ifs', 'knmi'];
     const pick = (field) => {
       for (const k of order) {
@@ -202,8 +216,11 @@ function blendDays(det, ens) {
     };
     const tx = pick('temperature_2m_max'), tn = pick('temperature_2m_min');
     const e = ens?.[date] || {};
+    // Ontbreekt max/min, neem dan het gemiddelde van de pluim (AIFS eerst, anders ECMWF)
+    const ensT = (k) => e.aifs?.[k] ?? e.ec?.[k] ?? null;
+    const fromEns = tx.v == null && ensT('tx') != null;
     return {
-      date, tx: tx.v, tn: tn.v, src: tx.k,
+      date, tx: tx.v ?? ensT('tx'), tn: tn.v ?? ensT('tn'), src: fromEns ? 'ens' : tx.k, fromEns,
       snow: Math.round((pick('snowfall_sum').v ?? 0) * 10) / 10,
       code: pick('weather_code').v,
       rain: pick('precipitation_sum').v, phours: pick('precipitation_hours').v, gust: pick('wind_gusts_10m_max').v,
@@ -215,11 +232,23 @@ function blendDays(det, ens) {
 
 function renderDay5(det, ens) {
   const days = blendDays(det, ens);
-  if (!days.length) { $('verdict').textContent = 'Geen verwachting beschikbaar'; return; }
+  if (!days.length) {
+    $('verdict').textContent = 'Geen verwachting beschikbaar';
+    const why = state.detErrors?.length ? ` Melding van de bron: ${state.detErrors.join('; ')}.` : '';
+    $('verdictSub').textContent = `De weerdata kon niet worden opgehaald. Probeer het over een paar minuten opnieuw.${why}`;
+    $('ribbon').innerHTML = '';
+    return;
+  }
   const mode = seasonMode(monthOf(days[0].date));
   const v = outlook(days, (d) => { const m = monthOf(d) - 1; return { tx: NORMAL_TX[m], tn: NORMAL_TN[m] }; });
-  $('verdict').textContent = v.h;
-  $('verdictSub').textContent = v.sub;
+  const allEns = days.every((d) => d.fromEns);
+  // Zonder gewone modelverwachting ontbreken neerslag en weertype: dan alleen iets zeggen over de temperatuur
+  const dT = (days[days.length - 1].tx ?? 0) - (days[0].tx ?? 0);
+  $('verdict').textContent = allEns ? (dT <= -3 ? 'Het wordt frisser' : dT >= 3 ? 'Het wordt zachter' : 'Weinig verandering in temperatuur') : v.h;
+  const ensOnly = days.filter((d) => d.fromEns).length;
+  $('verdictSub').textContent = v.sub + (ensOnly
+    ? ` ${ensOnly === days.length ? 'Alle dagen' : `${ensOnly} van de ${days.length} dagen`} komen nu uit het pluimgemiddelde, omdat de gewone modelverwachting even niet beschikbaar is.`
+    : '');
   const score = winterScore(days.filter((d) => d.tx != null && d.tn != null));
   applyMood(score);
 
