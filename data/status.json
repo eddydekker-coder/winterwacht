@@ -1,11 +1,11 @@
 {
- "checked": "2026-11-14T23:13:14.945Z",
+ "checked": "2026-11-15T02:52:02.238Z",
  "models": {
   "aifs": {
    "id": "ecmwf_aifs025",
-   "run": "2026-11-14T12:00Z",
+   "run": "2026-11-14T18:00Z",
    "estimated": false,
-   "fetched": "2026-11-14T23:13:15.846Z"
+   "fetched": "2026-11-15T02:52:03.057Z"
   },
   "ifs": {
    "id": "ecmwf_ifs025",
@@ -15,9 +15,9 @@
   },
   "gefs": {
    "id": "gfs025",
-   "run": "2026-11-14T12:00Z",
+   "run": "2026-11-14T18:00Z",
    "estimated": true,
-   "fetched": "2026-11-14T23:13:16.756Z"
+   "fetched": "2026-11-15T02:52:03.567Z"
   },
   "gem": {
    "id": "gem_global",
