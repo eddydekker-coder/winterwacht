@@ -2,21 +2,21 @@
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
   extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN, mergeEnsembleDays, GAP_POINTS,
-} from './lib/stats.js?v=23';
+} from './lib/stats.js?v=24';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=23';
+} from './lib/longrange.js?v=24';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, HOURLY_ENS_EC, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=23';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=23';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=23';
-import { outlook } from './lib/outlook.js?v=23';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=23';
-import { initMaps } from './lib/maps.js?v=23';
-import { initGame } from './lib/game.js?v=23';
-import { initObs } from './lib/obs.js?v=23';
-import { initStrat } from './lib/strat.js?v=23';
+} from './lib/hourly.js?v=24';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=24';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=24';
+import { outlook } from './lib/outlook.js?v=24';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=24';
+import { initMaps } from './lib/maps.js?v=24';
+import { initGame } from './lib/game.js?v=24';
+import { initObs } from './lib/obs.js?v=24';
+import { initStrat } from './lib/strat.js?v=24';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -101,6 +101,51 @@ async function fetchEnsemble(loc, key) {
   }
   throw last;
 }
+
+// Operationele run (de 'oper') bij een pluim: alleen T2m en T850, per uur, zelfde tijdas als de pluim.
+async function fetchOper(loc, key) {
+  const model = ENSEMBLES.find((m) => m.key === key);
+  if (!model?.oper) return null;
+  const cacheKey = `oper.${key}@${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}`;
+  const hit = state.ens[cacheKey];
+  if (hit && Date.now() - hit.t < 20 * 60e3) return hit.v;
+  for (const id of model.oper.ids) {
+    for (const vars of ['temperature_2m,temperature_850hPa', 'temperature_2m']) {
+      try {
+        const d = await getJSON(`${API}?latitude=${loc.lat}&longitude=${loc.lon}&hourly=${vars}&models=${id}&forecast_days=15&timezone=${encodeURIComponent(TZ)}`);
+        if (!d.hourly?.temperature_2m?.some((v) => v != null)) break; // leeg: volgende modelnaam proberen
+        const v = { id, label: model.oper.label, hourly: d.hourly };
+        state.ens[cacheKey] = { t: Date.now(), v };
+        return v;
+      } catch (e) { if (e.status !== 400) return null; }
+    }
+  }
+  return null;
+}
+
+// Oper-waarden op de tijdstappen van de pluim leggen (op tijdstempel, niet op positie)
+function operOn(times, oper, name) {
+  if (!oper?.hourly?.[name]) return null;
+  const map = new Map(oper.hourly.time.map((t, i) => [t, oper.hourly[name][i]]));
+  const arr = times.map((t) => map.get(t) ?? null);
+  return arr.some((v) => v != null) ? arr : null;
+}
+
+// Verschil oper min pluimgemiddelde over dag 8–14 (uren waar beide bestaan)
+function operGap(times, members, oper) {
+  if (!oper) return null;
+  const start = new Date(times[0].slice(0, 10) + 'T00:00:00Z').getTime();
+  let sum = 0, n = 0;
+  times.forEach((t, i) => {
+    const day = Math.floor((new Date(t.slice(0, 10) + 'T00:00:00Z').getTime() - start) / 864e5);
+    if (day < 7 || day > 13 || oper[i] == null) return;
+    const col = members.map((m) => m[i]).filter((x) => x != null);
+    if (!col.length) return;
+    sum += oper[i] - col.reduce((a, x) => a + x, 0) / col.length; n++;
+  });
+  return n >= 8 ? Math.round((sum / n) * 10) / 10 : null;
+}
+const OPER_COLOR = '#8ef0c9';
 
 async function loadConfigAndHistory() {
   try { state.config = await getJSON(`config.json?t=${Date.now()}`); } catch { /* standaard blijft */ }
@@ -681,7 +726,15 @@ function plumeSVG(times, members, opts = {}) {
   const mem = members.map((m) => `<path d="${path(m)}" fill="none" stroke="var(--ink)" stroke-opacity="0.18" stroke-width="0.8"/>`).join('');
   const nowIdx = times.findIndex((t) => new Date(t) >= new Date());
   const now = nowIdx > 0 ? `<line x1="${x(nowIdx)}" x2="${x(nowIdx)}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".5"/><text x="${x(nowIdx) + 3}" y="${T + 10}" font-size="10" fill="var(--ink-soft)">nu</text>` : '';
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluim')}">${g}${band}${mem}<path d="${path(means)}" fill="none" stroke="var(--ink)" stroke-width="2.6"/>${now}</svg>`;
+  let oper = '';
+  if (opts.oper) {
+    // Doortrekken over ontbrekende uren (AIFS single en GFS na dag 5 hebben grotere tijdstappen)
+    const pts = opts.oper.map((v, i) => (v == null ? null : `${x(i).toFixed(1)},${y(Math.max(ymin, Math.min(ymax, v))).toFixed(1)}`)).filter(Boolean);
+    if (pts.length > 1) oper = `<path d="M${pts.join('L')}" fill="none" stroke="${OPER_COLOR}" stroke-width="1.8" stroke-linejoin="round"/>`
+      + (() => { const lab = opts.operLabel || 'oper', lx = W - R - 4 - lab.length * 5.9 - 20;
+        return `<line x1="${lx}" x2="${lx + 16}" y1="${T + 6}" y2="${T + 6}" stroke="${OPER_COLOR}" stroke-width="2"/><text x="${W - R - 4}" y="${T + 10}" text-anchor="end" font-size="10.5" fill="var(--ink-soft)">${esc(lab)}</text>`; })();
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluim')}">${g}${band}${mem}<path d="${path(means)}" fill="none" stroke="var(--ink)" stroke-width="2.6"/>${oper}${now}</svg>`;
 }
 
 // Twee pluimen in één grafiek (AIFS en ECMWF IFS ENS): band 10–90% en gemiddelde per model, gedeelde tijdas.
@@ -731,11 +784,16 @@ function plumeMultiSVG(series, opts = {}) {
     return `<polygon points="${up.concat(dn).join(' ')}" fill="${sr.color}" opacity="0.15"/>`;
   }).join('');
   const lines = st.map((sr) => `<path d="${path(sr.ms, sr.mean)}" fill="none" stroke="${sr.color}" stroke-width="2.6"${sr.dash ? ` stroke-dasharray="${sr.dash}"` : ''}/>`).join('');
+  const opers = st.map((sr) => {
+    if (!sr.oper) return '';
+    const pts = sr.oper.map((v, i) => (v == null ? null : `${x(sr.ms[i]).toFixed(1)},${y(Math.max(ymin, Math.min(ymax, v))).toFixed(1)}`)).filter(Boolean);
+    return pts.length > 1 ? `<path d="M${pts.join('L')}" fill="none" stroke="${sr.color}" stroke-width="1.1" stroke-opacity=".9" stroke-linejoin="round"/>` : '';
+  }).join('');
   const nowMs = Date.now();
   const now = nowMs > t0 && nowMs < t1 ? `<line x1="${x(nowMs)}" x2="${x(nowMs)}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-opacity=".5"/><text x="${x(nowMs) + 3}" y="${T + 10}" font-size="10" fill="var(--ink-soft)">nu</text>` : '';
   let lx = L;
   const legend = st.map((sr) => { const out = `<line x1="${lx}" x2="${lx + 18}" y1="12" y2="12" stroke="${sr.color}" stroke-width="2.6"${sr.dash ? ` stroke-dasharray="${sr.dash}"` : ''}/><text x="${lx + 23}" y="16" font-size="11" fill="var(--ink-soft)">${esc(sr.label)}</text>`; lx += 40 + sr.label.length * 6.2; return out; }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluimen naast elkaar')}">${g}${bands}${now}${lines}${legend}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluimen naast elkaar')}">${g}${bands}${now}${opers}${lines}${legend}</svg>`;
 }
 
 async function renderBoth() {
@@ -743,14 +801,17 @@ async function renderBoth() {
   const box = $('bothBox'), note = $('bothNote');
   note.textContent = 'AIFS en ECMWF worden geladen…';
   $('plumeBoth').innerHTML = ''; $('plumeT850Both').innerHTML = '';
-  const [a, e] = await Promise.all([fetchEnsemble(state.loc, 'aifs').catch(() => null), fetchEnsemble(state.loc, 'ifs').catch(() => null)]);
+  const [a, e, ao, eo] = await Promise.all([
+    fetchEnsemble(state.loc, 'aifs').catch(() => null), fetchEnsemble(state.loc, 'ifs').catch(() => null),
+    fetchOper(state.loc, 'aifs').catch(() => null), fetchOper(state.loc, 'ifs').catch(() => null),
+  ]);
   if (token !== state.bothToken) return;
   if (!a || !e) { box.hidden = true; return; }
   box.hidden = false;
-  const mk = (r, label, color, dash, name) => ({ times: r.data.hourly.time, members: extractMembers(r.data.hourly, name), label, color, dash });
-  const t2 = [mk(a, 'AIFS', '#ffffff', null, 'temperature_2m'), mk(e, 'ECMWF', '#ffd36b', '6 4', 'temperature_2m')];
+  const mk = (r, o, label, color, dash, name) => ({ times: r.data.hourly.time, members: extractMembers(r.data.hourly, name), oper: operOn(r.data.hourly.time, o, name), label, color, dash });
+  const t2 = [mk(a, ao, 'AIFS', '#ffffff', null, 'temperature_2m'), mk(e, eo, 'ECMWF', '#ffd36b', '6 4', 'temperature_2m')];
   $('plumeBoth').innerHTML = plumeMultiSVG(t2, { label: 'T2m-pluimen AIFS en ECMWF naast elkaar' });
-  const t8 = [mk(a, 'AIFS', '#ffffff', null, 'temperature_850hPa'), mk(e, 'ECMWF', '#ffd36b', '6 4', 'temperature_850hPa')];
+  const t8 = [mk(a, ao, 'AIFS', '#ffffff', null, 'temperature_850hPa'), mk(e, eo, 'ECMWF', '#ffd36b', '6 4', 'temperature_850hPa')];
   $('plumeT850Both').innerHTML = t8.every((x) => x.members.length) ? plumeMultiSVG(t8, { h: 240, label: 'T850-pluimen AIFS en ECMWF naast elkaar' }) : '<p class="note">Een van de twee levert geen T850 via de bron.</p>';
   // Samenvatting in woorden: tweede week en de dag met het grootste verschil
   const keys = Object.keys(a.dates).sort();
@@ -769,7 +830,8 @@ async function renderBoth() {
   }
   if (big && Math.abs(big.diff) >= 1) parts.push(`Grootste verschil op ${dShort(big.d)}: ECMWF ${nl(Math.abs(big.diff).toFixed(1))}° ${big.diff < 0 ? 'kouder' : 'warmer'} dan AIFS.`);
   else parts.push('De twee modellen blijven dicht bij elkaar.');
-  note.textContent = `Wit: AIFS (hoofdlijn), amber gestippeld: ECMWF IFS ENS. Dikke lijn = gemiddelde, band = 10–90% van de leden. ${parts.join(' ')}`;
+  const operTxt = ao || eo ? ` Dunne lijn in dezelfde kleur = de oper (${[ao && 'AIFS single', eo && 'IFS HRES'].filter(Boolean).join(' en ')}).` : '';
+  note.textContent = `Wit: AIFS (hoofdlijn), amber gestippeld: ECMWF IFS ENS. Dikke lijn = gemiddelde, band = 10–90% van de leden.${operTxt} ${parts.join(' ')}`;
 }
 
 function trendSVG(runs) {
@@ -823,7 +885,8 @@ async function renderDay14() {
   $('plumeTitle').textContent = `${model.label}, ${state.loc.name}`;
   $('plumeSummary').textContent = 'Pluim wordt geladen…';
   $('plumeT2').innerHTML = ''; $('plumeT850').innerHTML = '';
-  let live;
+  let live, operTxt = '';
+  const operP = fetchOper(state.loc, state.model).catch(() => null);
   try {
     live = await fetchEnsemble(state.loc, state.model);
   } catch (e) {
@@ -833,8 +896,15 @@ async function renderDay14() {
     const h = live.data.hourly;
     const t2 = extractMembers(h, 'temperature_2m');
     const t850 = extractMembers(h, 'temperature_850hPa');
-    $('plumeT2').innerHTML = plumeSVG(h.time, t2, { label: `T2m-pluim ${model.label}` });
-    $('plumeT850').innerHTML = t850.length ? plumeSVG(h.time, t850, { label: `T850-pluim ${model.label}`, h: 240 }) : '<p class="note">Dit model levert geen T850 via de bron.</p>';
+    const oper = await operP;
+    const o2 = operOn(h.time, oper, 'temperature_2m'), o8 = operOn(h.time, oper, 'temperature_850hPa');
+    $('plumeT2').innerHTML = plumeSVG(h.time, t2, { label: `T2m-pluim ${model.label}`, oper: o2, operLabel: `oper ${oper?.label || ''}`.trim() });
+    $('plumeT850').innerHTML = t850.length ? plumeSVG(h.time, t850, { label: `T850-pluim ${model.label}`, h: 240, oper: o8, operLabel: `oper ${oper?.label || ''}`.trim() }) : '<p class="note">Dit model levert geen T850 via de bron.</p>';
+    // Wijkt de oper af van zijn eigen pluim? Liefhebbers willen weten of het een koude of warme uitschieter is.
+    const gap = operGap(h.time, t2, o2);
+    operTxt = !o2 ? ' De oper is nu niet beschikbaar.'
+      : gap == null ? ` Groene lijn = oper (${oper.label}).`
+      : ` Groene lijn = oper (${oper.label}): dag 8–14 ${Math.abs(gap) < 0.7 ? 'dicht bij het pluimgemiddelde' : `gemiddeld ${nl(Math.abs(gap).toFixed(1))}° ${gap < 0 ? 'kouder' : 'warmer'} dan het pluimgemiddelde${Math.abs(gap) >= 2 ? ', een uitschieter' : ''}`}.`;
     const keys = Object.keys(live.dates).sort();
     const w = windowMean(live.dates, 7, 13, keys[0]);
     const lastDay = keys[keys.length - 1];
@@ -845,7 +915,7 @@ async function renderDay14() {
       const a = w - norm;
       anomTxt = ` Dag 8–14 gemiddeld ${String(w).replace('.', ',')}° (${Math.abs(a) < 0.7 ? 'rond normaal' : `${Math.abs(a).toFixed(1).replace('.', ',')}° ${a < 0 ? 'kouder' : 'warmer'} dan normaal`}).`;
     }
-    $('plumeSummary').textContent = `${t2.length} leden tot en met ${dShort(lastDay)}. Dikke lijn = gemiddelde, band = 10–90% van de leden.${anomTxt}`;
+    $('plumeSummary').textContent = `${t2.length} leden tot en met ${dShort(lastDay)}. Dikke lijn = gemiddelde, band = 10–90% van de leden.${anomTxt}${operTxt}`;
   }
 
   // run tegen run
