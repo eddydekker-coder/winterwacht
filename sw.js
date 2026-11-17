@@ -1,6 +1,6 @@
 // Service worker: app-schil offline beschikbaar, weerdata altijd eerst vers van het netwerk.
-const CACHE = 'winterwacht-v24';
-const SHELL = ['./', 'index.html', 'styles.css?v=24', 'app.js?v=24', 'lib/stats.js?v=24', 'lib/longrange.js?v=24', 'lib/hourly.js?v=24', 'lib/radar.js?v=24', 'lib/runfilm.js?v=24', 'lib/outlook.js?v=24', 'lib/rainfx.js?v=24', 'lib/maps.js?v=24', 'lib/game.js?v=24', 'lib/obs.js?v=24', 'lib/obsdata.js?v=24', 'lib/strat.js?v=24', 'lib/glossary.js?v=24', 'lib/coast.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/apple-touch-icon.png'];
+const CACHE = 'winterwacht-v25';
+const SHELL = ['./', 'index.html', 'styles.css?v=25', 'app.js?v=25', 'lib/stats.js?v=25', 'lib/longrange.js?v=25', 'lib/hourly.js?v=25', 'lib/radar.js?v=25', 'lib/runfilm.js?v=25', 'lib/outlook.js?v=25', 'lib/rainfx.js?v=25', 'lib/maps.js?v=25', 'lib/game.js?v=25', 'lib/obs.js?v=25', 'lib/obsdata.js?v=25', 'lib/strat.js?v=25', 'lib/glossary.js?v=25', 'lib/coast.json', 'manifest.webmanifest', 'icons/icon.svg', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

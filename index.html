@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@300;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
   <canvas id="rainfx" aria-hidden="true"></canvas>
@@ -196,20 +196,24 @@
 
       <div class="plumehead">
         <h2 id="plumeTitle">Temperatuurpluim</h2>
+        <p class="runstamp" id="plumeRun"></p>
         <p id="plumeSummary"></p>
       </div>
       <figure class="plume" id="plumeT2"></figure>
 
       <section class="both" id="bothBox" aria-labelledby="bothTitle" hidden>
         <h2 class="h2" id="bothTitle">AIFS en ECMWF naast elkaar</h2>
+        <p class="runstamp" id="bothRun"></p>
         <p class="note" id="bothNote"></p>
         <figure class="plume" id="plumeBoth"></figure>
       </section>
 
       <details class="t850" id="t850Box">
         <summary>T850-pluim <span>temperatuur op ±1,5 km — laat de luchtmassa zien</span></summary>
+        <p class="runstamp" id="t850Run"></p>
         <figure class="plume" id="plumeT850"></figure>
         <p class="note">AIFS en ECMWF samen:</p>
+        <p class="runstamp" id="t850BothRun"></p>
         <figure class="plume" id="plumeT850Both"></figure>
       </details>
 
@@ -366,6 +370,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=24"></script>
+  <script type="module" src="app.js?v=25"></script>
 </body>
 </html>

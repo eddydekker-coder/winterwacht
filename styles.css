@@ -133,8 +133,11 @@ td .num { font: 500 1.05rem var(--font-num); }
 }
 .modelpick button[aria-checked='true'], .modelpick button[aria-selected='true'] { background: var(--ink); color: var(--sky-bottom); border-color: var(--ink); }
 .plumehead { padding-top: 10px; }
+/* Van welke run is deze pluim? Klein, maar altijd direct boven de grafiek */
+.runstamp { margin: 4px 0 6px; font-size: 0.8rem; font-weight: 700; color: var(--frost); }
+.runstamp:empty { display: none; }
 .plumehead h2, .h2 { font: 600 1.45rem/1.15 var(--font-num); margin: 18px 0 4px; }
-.plumehead p { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+.plumehead p:not(.runstamp) { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
 figure { margin: 10px -16px 0; }
 .plume svg, .trend svg, .signals svg { display: block; width: 100%; height: auto; }
 .t850 { border-top: 1px solid var(--line); margin-top: 18px; }

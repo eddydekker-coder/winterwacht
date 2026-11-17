@@ -6,6 +6,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import {
   ENSEMBLES, summarizeEnsemble, fingerprint, estimateRun, windowMean,
   SIGNAL_POINTS, computeSignals, findOpenings,
+  RUN_META,
 } from '../lib/stats.js';
 import { LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint } from '../lib/longrange.js';
 
@@ -68,6 +69,7 @@ async function fetchEnsemble(model, lat, lon) {
 // Officiële run-tijd via metadata (als dat endpoint bestaat), anders een schatting.
 async function runTime(id) {
   const candidates = [
+    ...(RUN_META[id] || []).map((ds) => `https://ensemble-api.open-meteo.com/data/${ds}/static/meta.json`),
     `https://ensemble-api.open-meteo.com/data/${id}_ensemble/static/meta.json`,
     `https://ensemble-api.open-meteo.com/data/${id}/static/meta.json`,
     `https://api.open-meteo.com/data/${id}_ensemble/static/meta.json`,

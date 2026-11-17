@@ -1,22 +1,22 @@
 // Winterwacht — app-logica (laag 1: 5 dagen + uur voor uur, laag 2: 14-daagse pluimen, laag 3: lange termijn)
 import {
   ENSEMBLES, DETERMINISTIC, HOME, summarizeEnsemble, fingerprint, compareRuns, windowMean,
-  extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN, mergeEnsembleDays, GAP_POINTS,
-} from './lib/stats.js?v=24';
+  extractMembers, pct, winterScore, seasonMode, dayHighlights, monthOf, NORMAL_TX, NORMAL_TN, mergeEnsembleDays, GAP_POINTS, RUN_META, RUN_META_OPER,
+} from './lib/stats.js?v=25';
 import {
   LONG_MODELS, LONG_VARS, longUrl, summarizeLong, longFingerprint, compareLong, longScore, winterMean,
-} from './lib/longrange.js?v=24';
+} from './lib/longrange.js?v=25';
 import {
   HOURLY_VARS, HOURLY_VARS_MIN, HOURLY_MODELS, HOURLY_ENS, HOURLY_ENS_EC, buildSteps, localHourKey, hourlyHeadline, compass, addDays,
-} from './lib/hourly.js?v=24';
-import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=24';
-import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=24';
-import { outlook } from './lib/outlook.js?v=24';
-import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=24';
-import { initMaps } from './lib/maps.js?v=24';
-import { initGame } from './lib/game.js?v=24';
-import { initObs } from './lib/obs.js?v=24';
-import { initStrat } from './lib/strat.js?v=24';
+} from './lib/hourly.js?v=25';
+import { initRadar, radarLocation, radarRefresh, radarResize } from './lib/radar.js?v=25';
+import { initRunFilm, setRunFilm, stopRunFilm } from './lib/runfilm.js?v=25';
+import { outlook } from './lib/outlook.js?v=25';
+import { initRain, setRain, rainVisible, rainFromSteps } from './lib/rainfx.js?v=25';
+import { initMaps } from './lib/maps.js?v=25';
+import { initGame } from './lib/game.js?v=25';
+import { initObs } from './lib/obs.js?v=25';
+import { initStrat } from './lib/strat.js?v=25';
 
 const API = 'https://api.open-meteo.com/v1/forecast';
 const ENS = 'https://ensemble-api.open-meteo.com/v1/ensemble';
@@ -100,6 +100,57 @@ async function fetchEnsemble(loc, key) {
     }
   }
   throw last;
+}
+
+// ---------- run-tijden ----------
+// Open-Meteo zet per dataset een meta.json neer met het tijdstip van de laatste run.
+async function fetchRunTime(datasets, ens) {
+  state.runMeta = state.runMeta || {};
+  for (const ds of datasets || []) {
+    const hit = state.runMeta[ds];
+    if (hit && Date.now() - hit.t < 10 * 60e3) { if (hit.v) return hit.v; continue; }
+    let v = null;
+    for (const host of ens ? ['ensemble-api.open-meteo.com', 'api.open-meteo.com'] : ['api.open-meteo.com', 'ensemble-api.open-meteo.com']) {
+      try {
+        const m = await getJSON(`https://${host}/data/${ds}/static/meta.json`, 8000);
+        if (m.last_run_initialisation_time) { v = m.last_run_initialisation_time * 1000; break; }
+      } catch { /* volgende */ }
+    }
+    state.runMeta[ds] = { t: Date.now(), v };
+    if (v) return v;
+  }
+  return null;
+}
+
+// Run van een live opgehaalde pluim: metadata, anders het archief als het om dezelfde data gaat
+async function ensRunTime(key, live) {
+  if (!live) return null;
+  if (live.run === undefined) {
+    let ms = await fetchRunTime(RUN_META[live.id], true).catch(() => null);
+    if (!ms) {
+      const same = state.history?.models?.[key]?.runs?.find((r) => r.fp === live.fp && r.run && !r.estimated);
+      if (same) ms = new Date(same.run).getTime();
+    }
+    live.run = ms;
+  }
+  return live.run;
+}
+async function operRunTime(oper) {
+  if (!oper) return null;
+  if (oper.run === undefined) oper.run = await fetchRunTime(RUN_META_OPER[oper.id], false).catch(() => null);
+  return oper.run;
+}
+const MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+function runStamp(ms, withDay = true) {
+  if (!ms) return null;
+  const d = new Date(ms);
+  const hh = `${String(d.getUTCHours()).padStart(2, '0')}z`;
+  return withDay ? `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${hh}` : hh;
+}
+// Oper-tijd kort tonen als hij op dezelfde dag valt als de pluim
+function operStamp(ensMs, operMs) {
+  if (!operMs) return null;
+  return ensMs && new Date(ensMs).toISOString().slice(0, 10) === new Date(operMs).toISOString().slice(0, 10) ? runStamp(operMs, false) : runStamp(operMs);
 }
 
 // Operationele run (de 'oper') bij een pluim: alleen T2m en T850, per uur, zelfde tijdas als de pluim.
@@ -731,7 +782,7 @@ function plumeSVG(times, members, opts = {}) {
     // Doortrekken over ontbrekende uren (AIFS single en GFS na dag 5 hebben grotere tijdstappen)
     const pts = opts.oper.map((v, i) => (v == null ? null : `${x(i).toFixed(1)},${y(Math.max(ymin, Math.min(ymax, v))).toFixed(1)}`)).filter(Boolean);
     if (pts.length > 1) oper = `<path d="M${pts.join('L')}" fill="none" stroke="${OPER_COLOR}" stroke-width="1.8" stroke-linejoin="round"/>`
-      + (() => { const lab = opts.operLabel || 'oper', lx = W - R - 4 - lab.length * 5.9 - 20;
+      + (() => { const lab = opts.operLabel || 'oper', lx = W - R - 4 - lab.length * 5.1 - 20;
         return `<line x1="${lx}" x2="${lx + 16}" y1="${T + 6}" y2="${T + 6}" stroke="${OPER_COLOR}" stroke-width="2"/><text x="${W - R - 4}" y="${T + 10}" text-anchor="end" font-size="10.5" fill="var(--ink-soft)">${esc(lab)}</text>`; })();
   }
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Pluim')}">${g}${band}${mem}<path d="${path(means)}" fill="none" stroke="var(--ink)" stroke-width="2.6"/>${oper}${now}</svg>`;
@@ -830,6 +881,11 @@ async function renderBoth() {
   }
   if (big && Math.abs(big.diff) >= 1) parts.push(`Grootste verschil op ${dShort(big.d)}: ECMWF ${nl(Math.abs(big.diff).toFixed(1))}° ${big.diff < 0 ? 'kouder' : 'warmer'} dan AIFS.`);
   else parts.push('De twee modellen blijven dicht bij elkaar.');
+  const [aMs, eMs, aoMs, eoMs] = await Promise.all([ensRunTime('aifs', a), ensRunTime('ifs', e), operRunTime(ao), operRunTime(eo)]);
+  if (token !== state.bothToken) return;
+  const part = (name, ms, oper, oms) => `${name} run ${runStamp(ms) || 'onbekend'}${oper ? ` (oper ${operStamp(ms, oms) || 'onbekend'})` : ''}`;
+  $('bothRun').textContent = `${part('AIFS', aMs, ao, aoMs)}, ${part('ECMWF', eMs, eo, eoMs)}`;
+  $('t850BothRun').textContent = $('bothRun').textContent;
   const operTxt = ao || eo ? ` Dunne lijn in dezelfde kleur = de oper (${[ao && 'AIFS single', eo && 'IFS HRES'].filter(Boolean).join(' en ')}).` : '';
   note.textContent = `Wit: AIFS (hoofdlijn), amber gestippeld: ECMWF IFS ENS. Dikke lijn = gemiddelde, band = 10–90% van de leden.${operTxt} ${parts.join(' ')}`;
 }
@@ -885,6 +941,7 @@ async function renderDay14() {
   $('plumeTitle').textContent = `${model.label}, ${state.loc.name}`;
   $('plumeSummary').textContent = 'Pluim wordt geladen…';
   $('plumeT2').innerHTML = ''; $('plumeT850').innerHTML = '';
+  $('plumeRun').textContent = ''; $('t850Run').textContent = '';
   let live, operTxt = '';
   const operP = fetchOper(state.loc, state.model).catch(() => null);
   try {
@@ -898,6 +955,11 @@ async function renderDay14() {
     const t850 = extractMembers(h, 'temperature_850hPa');
     const oper = await operP;
     const o2 = operOn(h.time, oper, 'temperature_2m'), o8 = operOn(h.time, oper, 'temperature_850hPa');
+    const [eMs, oMs] = await Promise.all([ensRunTime(state.model, live), operRunTime(oper)]);
+    const eTxt = runStamp(eMs), oTxt = o2 ? operStamp(eMs, oMs) : null;
+    const runTxt = `Pluim ${model.short}: run ${eTxt || 'onbekend'}${o2 ? `, oper ${oper.label}: run ${oTxt || 'onbekend'}` : ''}`;
+    $('plumeRun').textContent = runTxt;
+    $('t850Run').textContent = runTxt;
     $('plumeT2').innerHTML = plumeSVG(h.time, t2, { label: `T2m-pluim ${model.label}`, oper: o2, operLabel: `oper ${oper?.label || ''}`.trim() });
     $('plumeT850').innerHTML = t850.length ? plumeSVG(h.time, t850, { label: `T850-pluim ${model.label}`, h: 240, oper: o8, operLabel: `oper ${oper?.label || ''}`.trim() }) : '<p class="note">Dit model levert geen T850 via de bron.</p>';
     // Wijkt de oper af van zijn eigen pluim? Liefhebbers willen weten of het een koude of warme uitschieter is.
